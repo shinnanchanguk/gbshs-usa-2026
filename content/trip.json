@@ -1,0 +1,15 @@
+{
+  "title": "USA 2026",
+  "subtitle": "해외 이공계 진로체험학습 · 미국 동부",
+  "school": "경기북과학고등학교 1학년",
+  "period": "2026. 10. 15.(목) ~ 10. 23.(금) · 6박 9일",
+  "classes": [
+    { "no": 1, "size": 20 },
+    { "no": 2, "size": 20 },
+    { "no": 3, "size": 20 },
+    { "no": 4, "size": 21 },
+    { "no": 5, "size": 19 }
+  ],
+  "siteUrl": "https://shinnanchanguk.github.io/gbshs-usa-2026/",
+  "repo": "shinnanchanguk/gbshs-usa-2026"
+}

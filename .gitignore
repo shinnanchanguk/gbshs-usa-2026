@@ -1,0 +1,10 @@
+node_modules
+dist
+*.log
+.DS_Store
+# 원본 사진·녹음·전사 원문은 레포에 넣지 않는다 (개인정보 보호)
+raw/
+private/
+*.m4a
+*.wav
+.omc

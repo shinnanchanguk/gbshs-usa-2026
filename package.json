@@ -1,0 +1,30 @@
+{
+  "name": "gbshs-usa-2026",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "경기북과학고 2026 해외 이공계 진로체험학습(미국 동부) 안내 사이트",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run check && tsc -b && vite build",
+    "preview": "vite preview",
+    "check": "node scripts/check-content.mjs",
+    "photos:import": "node scripts/import-photos.mjs",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "maplibre-gl": "^6.10.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "exifr": "^7.1.3",
+    "sharp": "^0.35.4",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4",
+    "zod": "^4.1.0"
+  }
+}
