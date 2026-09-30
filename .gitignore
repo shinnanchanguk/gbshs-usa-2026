@@ -8,3 +8,6 @@ private/
 *.m4a
 *.wav
 .omc
+.impeccable/review/
+.impeccable/mocks/
+.claude/요구사항-원장.md

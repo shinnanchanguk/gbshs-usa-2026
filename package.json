@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "check": "node scripts/check-content.mjs",
     "photos:import": "node scripts/import-photos.mjs",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "routes": "node --network-family-autoselection-attempt-timeout=2000 scripts/build-routes.mjs",
+    "roster:seal": "node scripts/seal-roster.mjs"
   },
   "dependencies": {
     "maplibre-gl": "^6.10.0",

@@ -1,45 +1,140 @@
 /**
- * content/ 폴더의 JSON 을 읽어 화면에서 쓰기 좋은 모양으로 묶는다.
- * 모든 일차의 슬라이드를 한 줄로 이어 붙여 "슬라이드 넘기기" 순서를 만든다.
+ * content/ 폴더의 JSON 을 화면에서 쓰기 좋은 한 줄의 "장(page)" 흐름으로 묶는다.
+ *
+ * 출발 전(day0) → [1일차 표지, 1일차 장들] → … → [9일차 표지, …] → 다녀와서(day10)
+ * 넘기는 순서가 곧 시간 순서이고 동선이다. 장소가 있는 장은 바로 앞 장소에서 오는 길(route)을 안다.
  */
 import tripJson from '../../content/trip.json'
+import seatingJson from '../../content/seating.json'
 import photoSourcesJson from '../../content/photo-sources.json'
-import type { Day, PhotoSources, Slide, Trip } from './schema'
+import routesJson from '../../content/routes.json'
+import type { Day, PhotoSources, Seating, Slide, Trip } from './schema'
+import { instant, toMin } from '../lib/time'
+import { km, type LngLat } from '../lib/geo'
 
-export type { Day, Slide, Trip, SlideKind, PhotoRef } from './schema'
+export type { Day, Slide, Trip, SlideKind, PhotoRef, Seating, ThemeId, Widget } from './schema'
 
 const dayModules = import.meta.glob<Day>('../../content/days/day*.json', { eager: true, import: 'default' })
 
 export const trip = tripJson as Trip
+export const seating = seatingJson as unknown as Seating
 export const days: Day[] = Object.values(dayModules).sort((a, b) => a.n - b.n)
 
 const photoSources = photoSourcesJson as PhotoSources
 
-export type DeckSlide = Slide & {
-  /** 전체 넘기기 순서에서 몇 번째인지 (0부터) */
-  index: number
+export type Route = { mode: 'bus' | 'walk'; km: number; min: number; coords: LngLat[] }
+const routes = routesJson as unknown as Record<string, Route>
+
+export type Chapter = {
+  n: number
+  /** "출발 전" · "1일차" · "다녀와서" */
+  label: string
   day: Day
-  /** 그날 안에서 몇 번째인지 (1부터) */
-  order: number
+  pages: Page[]
+}
+
+type PageBase = { key: string; index: number; day: Day; chapter: Chapter }
+
+export type DayPage = PageBase & { type: 'day' }
+
+export type SlidePage = PageBase & {
+  type: 'slide'
+  slide: Slide
   /** 그날 지도에 찍히는 장소 번호 (장소가 없으면 null) */
   pin: number | null
+  /** 바로 앞에 장소가 있는 장 (여기까지 오는 길의 출발점) */
+  from: SlidePage | null
+  /** 앞 장소에서 오는 실제 도로 경로(있으면) */
+  route: Route | null
+  /** 앞 장소와의 직선 거리(km) */
+  crowKm: number | null
+  /** 시작·끝 순간 (날짜가 있는 일차만) */
+  start: Date | null
+  end: Date | null
 }
 
-export const deck: DeckSlide[] = []
+export type Page = DayPage | SlidePage
+
+export const chapterLabel = (n: number) => (n === 0 ? '출발 전' : n === 10 ? '다녀와서' : `${n}일차`)
+
+export const chapters: Chapter[] = []
+export const pages: Page[] = []
+
+let lastPlaced: SlidePage | null = null
 for (const day of days) {
+  const chapter: Chapter = { n: day.n, label: chapterLabel(day.n), day, pages: [] }
+  chapters.push(chapter)
+  const push = (p: Page) => {
+    pages.push(p)
+    chapter.pages.push(p)
+  }
+  if (day.n >= 1 && day.n <= 9) push({ type: 'day', key: `day-${day.n}`, index: pages.length, day, chapter })
   let pin = 0
-  day.slides.forEach((slide, i) => {
-    deck.push({
-      ...slide,
-      index: deck.length,
+  // 같은 좌표의 장은 같은 번호를 이어받는다(지도 핀 번호가 건너뛰지 않게)
+  const pinByCoords = new Map<string, number>()
+  for (const slide of day.slides) {
+    let start: Date | null = null
+    let end: Date | null = null
+    if (day.date && slide.time) {
+      const tz = slide.time.tz ?? 'EDT'
+      start = instant(day.date, slide.time.start, tz)
+      if (slide.time.end) {
+        end = instant(day.date, slide.time.end, tz)
+        // 자정을 넘기는 일정(예: 22:00~00:30)
+        if (toMin(slide.time.end) < toMin(slide.time.start)) end = new Date(end.getTime() + 86_400_000)
+      }
+    }
+    const page: SlidePage = {
+      type: 'slide',
+      key: slide.id,
+      index: pages.length,
       day,
-      order: i + 1,
-      pin: slide.place ? ++pin : null,
-    })
-  })
+      chapter,
+      slide,
+      pin: slide.place ? (pinByCoords.get(slide.place.coords.join(',')) ?? (pinByCoords.set(slide.place.coords.join(','), ++pin), pin)) : null,
+      from: slide.place ? lastPlaced : null,
+      route: null,
+      crowKm: null,
+      start,
+      end,
+    }
+    // 오는 길(leg)이 적힌 장만 앞 장소에서 오는 경로를 갖는다(호텔 조식처럼 이동이 없는 장에 가짜 선이 생기지 않게)
+    if (slide.place && slide.leg && lastPlaced?.slide.place) {
+      page.route = routes[`${lastPlaced.slide.id}>${slide.id}`] ?? null
+      page.crowKm = km(lastPlaced.slide.place.coords, slide.place.coords)
+    }
+    push(page)
+    if (slide.place) lastPlaced = page
+  }
 }
 
-export const slideById = new Map(deck.map((s) => [s.id, s]))
+export const pageByKey = new Map(pages.map((p) => [p.key, p]))
+export const slidePages = pages.filter((p): p is SlidePage => p.type === 'slide')
+
+/** 같은 일차에서 장소가 있는 장들 */
+export function placedIn(day: Day): SlidePage[] {
+  return slidePages.filter((p) => p.day === day && p.slide.place)
+}
+
+/** 끝 시각이 없으면 다음 장 시작 시각을 끝으로 본다 */
+export function effectiveEnd(p: SlidePage): Date | null {
+  if (p.end) return p.end
+  const next = slidePages.slice(slidePages.indexOf(p) + 1).find((q) => q.start)
+  return next?.start ?? null
+}
+
+/** 지금 순간에 해당하는 장. 여행 전이면 null, 여행 중이면 진행 중이거나 곧 시작할 장 */
+export function pageAt(at: Date): { page: SlidePage; state: 'live' | 'next' } | { page: null; state: 'before' | 'after' } {
+  const timed = slidePages.filter((p) => p.start)
+  if (!timed.length) return { page: null, state: 'before' }
+  if (at < timed[0].start!) return { page: null, state: 'before' }
+  for (const p of timed) {
+    const end = effectiveEnd(p)
+    if (at >= p.start! && end && at < end) return { page: p, state: 'live' }
+    if (at < p.start!) return { page: p, state: 'next' }
+  }
+  return { page: null, state: 'after' }
+}
 
 const base = import.meta.env.BASE_URL
 
@@ -61,28 +156,18 @@ export function photoSize(id: string): { w: number; h: number } | null {
   return entry ? { w: entry.w, h: entry.h } : null
 }
 
-export const dayLabel = (day: Day) => (day.n === 0 ? '공통 안내' : `${day.n}일차`)
-
-export function dayDateLabel(day: Day): string {
-  if (!day.date) return ''
-  const [, m, d] = day.date.split('-').map(Number)
-  return `${m}/${d}(${day.weekday ?? ''})`
-}
-
-export function timeLabel(slide: Slide): string {
-  if (!slide.time) return ''
-  const range = slide.time.end ? `${slide.time.start}–${slide.time.end}` : slide.time.start
-  return slide.time.tz === 'KST' ? `${range} 한국시각` : range
-}
-
 export const KIND_LABEL: Record<Slide['kind'], string> = {
-  info: '안내',
+  guide: '안내',
+  day: '일차',
   move: '이동',
-  flight: '항공',
-  campus: '대학 탐방',
+  flight: '비행',
+  campus: '대학',
   lecture: '특강',
-  culture: '문화 체험',
+  culture: '견학',
   meal: '식사',
   hotel: '숙소',
   shopping: '쇼핑',
 }
+
+export const hotelById = new Map(trip.hotels.map((h) => [h.id, h]))
+export const themeById = new Map(trip.themes.map((t) => [t.id, t]))

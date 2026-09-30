@@ -1,15 +1,18 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { IconClose } from './Icon'
+import { Icon } from './Icon'
 
 /**
- * 버튼을 눌러야 뜨는 창 (galpi2 .sheet).
- * 넓은 화면에서는 가운데, 휴대폰에서는 아래에서 올라오는 시트로 뜬다. Esc·바깥 누르기로 닫힌다.
+ * 버튼을 눌러야 뜨는 창. 휴대폰에서는 아래에서 올라오는 시트, 넓은 화면에서는 오른쪽 패널.
+ * Esc·바깥 누르기·닫기 단추로 닫힌다. 열리면 닫기 단추에 초점을 두고, 닫히면 연 단추로 돌아간다.
  */
-export function Sheet({ title, onClose, children }: { title: ReactNode; onClose: () => void; children: ReactNode }) {
+export function Sheet({ title, onClose, children, wide = false }: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean }) {
   const closeRef = useRef(onClose)
   closeRef.current = onClose
+  const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null
+    panelRef.current?.querySelector<HTMLElement>('.sheet__close')?.focus()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
@@ -22,19 +25,29 @@ export function Sheet({ title, onClose, children }: { title: ReactNode; onClose:
     return () => {
       window.removeEventListener('keydown', onKey, true)
       document.body.style.overflow = prev
+      opener?.focus?.()
     }
   }, [])
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : undefined} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={panelRef}
+        className="sheet"
+        data-wide={wide || undefined}
+        role="dialog"
+        aria-modal="true"
+        aria-label={typeof title === 'string' ? title : undefined}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sheet__grip" aria-hidden="true" />
         <div className="sheet__head">
           <h2 className="sheet__title">{title}</h2>
-          <button type="button" className="sheet__close" onClick={onClose} aria-label="닫기">
-            <IconClose size="1.1rem" />
+          <button type="button" className="icon-btn sheet__close" onClick={onClose} aria-label="닫기">
+            <Icon name="close" />
           </button>
         </div>
-        {children}
+        <div className="sheet__body">{children}</div>
       </div>
     </div>
   )

@@ -1,175 +1,146 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { dayDateLabel, dayLabel, days, deck, slideById } from '../content'
-import { goToSlide, parseHash, slideHref, useRoute } from '../lib/router'
-import { useAttendance, type Profile } from './state'
-import { Sidebar } from './Sidebar'
-import { SlideView } from '../features/slides/SlideView'
-import { FeedbackPage } from '../features/feedback/FeedbackPage'
-import { ReflectionsPage } from '../features/reflection/ReflectionsPage'
-import { RolePicker } from '../features/role/RolePicker'
-import { DayTimeline } from '../features/slides/DayTimeline'
-import type { SlidePanel } from '../features/slides/SlideActions'
-import { AttendancePanel } from '../features/attendance/AttendancePanel'
-import { FeedbackBox } from '../features/feedback/FeedbackBox'
-import { ReflectionBox } from '../features/reflection/ReflectionBox'
-import { Sheet } from '../components/Sheet'
-import { IconChevronLeft, IconChevronRight, IconClose, IconMenu } from '../components/Icon'
+import { useEffect, useMemo, useState } from 'react'
+import { rich } from '../components/Rich'
+import { pageAt, pageByKey, pages, trip, type Page } from '../content'
+import { Icon } from '../components/Icon'
+import { TripMap } from '../features/map/TripMap'
+import { Pager } from '../features/pager/Pager'
+import { PageView } from '../features/page/PageView'
+import { DayStrip } from '../features/strip/DayStrip'
+import { ScheduleSheet } from '../features/schedule/ScheduleSheet'
+import { MenuSheet } from '../features/menu/MenuSheet'
+import { goTo, useLocation } from '../lib/router'
+import { useLastPage, useMapTall } from '../lib/repo'
+import { daysUntil } from '../lib/time'
+import { useApp } from './context'
 
-// 지도 엔진(MapLibre)은 무거워서 입장 화면을 느리게 하지 않도록 따로 불러온다.
-const TripMap = lazy(() => import('../features/map/TripMap').then((m) => ({ default: m.TripMap })))
+export function Shell({ onLock }: { onLock: () => void }) {
+  const loc = useLocation()
+  const { at, profile } = useApp()
+  const [lastPage, setLastPage] = useLastPage()
+  const [mapTall, setMapTall] = useMapTall()
+  const [sheet, setSheet] = useState<'schedule' | 'menu' | null>(null)
 
-/** 지금 주소의 슬라이드에서 delta 만큼 앞뒤로 간다 (화면이 다시 그려지기 전에 눌려도 정확하도록 주소를 기준으로). */
-function step(delta: number) {
-  const now = parseHash(window.location.hash)
-  const at = now.name === 'slide' && now.slideId ? slideById.get(now.slideId) : undefined
-  const target = at ? deck[at.index + delta] : undefined
-  if (target) goToSlide(target.id)
-  return !!target
-}
+  const nowInfo = useMemo(() => pageAt(at), [at])
+  const current: Page = (loc.pageKey && pageByKey.get(loc.pageKey)) || pages[0]
 
-const isTyping = (el: EventTarget | null) =>
-  el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))
-
-export function Shell({ profile }: { profile: Profile }) {
-  const route = useRoute()
-  const { book } = useAttendance()
-  const [drawer, setDrawer] = useState(false)
-  const [roleSheet, setRoleSheet] = useState(false)
-  const [panel, setPanel] = useState<SlidePanel | null>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  const requested = route.name === 'slide' && route.slideId ? slideById.get(route.slideId) : undefined
-  const current = requested ?? (route.name === 'slide' ? deck[0] : null)
-  const lastSlide = useRef(deck[0])
-  if (current) lastSlide.current = current
-  const mapSlide = current ?? lastSlide.current
-
-  // 없는 슬라이드 주소로 들어오면 첫 슬라이드로 바꾼다.
+  // 주소에 장이 없으면: 마지막으로 본 장 → 여행 중이면 지금 장 → 첫 장
   useEffect(() => {
-    if (route.name === 'slide' && !requested) window.history.replaceState(null, '', slideHref(deck[0].id))
-  }, [route, requested])
+    if (loc.pageKey && pageByKey.has(loc.pageKey)) return
+    const live = nowInfo.page && nowInfo.state === 'live' ? nowInfo.page.key : null
+    const fallback = live ?? (lastPage && pageByKey.has(lastPage) ? lastPage : pages[0].key)
+    goTo(fallback, { replace: true })
+  }, [loc.pageKey, lastPage, nowInfo])
 
-  // 슬라이드가 바뀌면 슬라이드 칸을 맨 위로, 열려 있던 창은 닫는다.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0 })
-    setPanel(null)
-  }, [current?.id, route.name])
+    setLastPage(current.key)
+  }, [current.key, setLastPage])
 
-  // ← → 키로 넘기기 (입력 중일 때는 제외)
-  // 키를 빠르게 연달아 눌러도 정확하도록 지금 위치는 step() 이 주소에서 읽는다.
+  // 처음 들어오면 누구인지 고르게 한다
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (panel || isTyping(e.target) || e.altKey || e.metaKey || e.ctrlKey) return
-      const delta = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
-      if (delta && step(delta)) e.preventDefault()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [panel])
+    if (!profile) setSheet('menu')
+  }, [profile])
 
-  const prev = current ? deck[current.index - 1] : undefined
-  const next = current ? deck[current.index + 1] : undefined
-  const dayNow = mapSlide.day
+  const go = (i: number) => {
+    if (i >= 0 && i < pages.length) goTo(pages[i].key, { replace: true })
+  }
+  const jump = (key: string) => {
+    setSheet(null)
+    goTo(key)
+  }
+  const goNow = () => {
+    if (nowInfo.page) jump(nowInfo.page.key)
+    else jump(nowInfo.state === 'after' ? (pages.find((p) => p.day.n === 10)?.key ?? pages[pages.length - 1].key) : pages[0].key)
+  }
+
+  // 출발 전·다녀와서의 장소 없는 안내 장은 휴대폰에서 지도를 접는다(표지·버스·숙소 장은 지도에 보여 줄 것이 있어 남긴다)
+  const noMap =
+    current.type === 'slide' && !current.slide.place && (current.day.n === 0 || current.day.n === 10) && !['cover', 'bus', 'rooms'].includes(current.slide.widget ?? '')
+
+  const prev = pages[current.index - 1]
+  const next = pages[current.index + 1]
+  const dday = daysUntil(trip.startDate, at)
 
   return (
-    <div className="shell" data-route={route.name}>
-      <aside className="sidebar shell__sidebar">
-        <Sidebar current={current} route={route} profile={profile} onRole={() => setRoleSheet(true)} />
-      </aside>
-
-      <div className="main">
-        <header className="topbar">
-          <button type="button" className="topbar__btn" onClick={() => setDrawer(true)} aria-label="일정 목록 열기">
-            <IconMenu />
+    <div className="app" data-map-tall={mapTall || undefined} data-nomap={noMap || undefined}>
+      <header className="topbar">
+        <button type="button" className="topbar__chapter" onClick={() => setSheet('schedule')} aria-haspopup="dialog">
+          <span className="topbar__chapter-label">{current.chapter.label}</span>
+          {current.day.date ? <span className="topbar__chapter-date">{dateShort(current.day.date, current.day.weekday)}</span> : null}
+          <Icon name="chevronDown" size="1rem" />
+        </button>
+        <div className="topbar__actions">
+          <button type="button" className="now-btn" onClick={goNow} data-live={nowInfo.state === 'live' || undefined}>
+            {nowInfo.state === 'before' ? (
+              <span className="now-btn__label">{dday > 0 ? `D-${dday}` : '오늘 출발'}</span>
+            ) : (
+              <>
+                <span className="now-btn__dot" aria-hidden="true" />
+                <span className="now-btn__label">지금</span>
+              </>
+            )}
           </button>
-          <div className="topbar__title">
-            <span className="topbar__brand">USA 2026</span>
-            <span className="topbar__day">
-              {route.name === 'slide' ? `${dayLabel(dayNow)} ${dayDateLabel(dayNow)}` : route.name === 'feedback' ? '피드백 모아보기' : '내 소감 모아보기'}
-            </span>
-          </div>
-        </header>
-
-        {route.name === 'slide' && current && (
-          <div className="mobile-nav">
-            <nav className="daychips" aria-label="일차">
-              {days.map((d) => (
-                <a key={d.n} className="daychip" data-active={d.n === dayNow.n} href={slideHref(d.slides[0].id)}>
-                  <strong>{d.n === 0 ? '안내' : `${d.n}일차`}</strong>
-                  {d.date && <span>{dayDateLabel(d)}</span>}
-                </a>
-              ))}
-            </nav>
-            <DayTimeline current={current} />
-          </div>
-        )}
-
-        {route.name === 'slide' && current ? (
-          <div className="stage">
-            <div className="stage__map">
-              <Suspense fallback={<p className="trip-map__loading">지도를 불러오는 중…</p>}>
-                <TripMap current={current} book={book} showAttendance={profile.role === 'teacher'} />
-              </Suspense>
-            </div>
-            <div className="stage__slide" ref={scrollRef}>
-              <SlideView slide={current} profile={profile} onOpen={setPanel} />
-            </div>
-          </div>
-        ) : (
-          <div className="stage stage--page">
-            <div className="stage__slide" ref={scrollRef}>
-              {route.name === 'feedback' ? <FeedbackPage /> : <ReflectionsPage />}
-            </div>
-          </div>
-        )}
-
-        {route.name === 'slide' && current && (
-          <nav className="bottombar" aria-label="슬라이드 넘기기">
-            <button type="button" className="bottombar__btn" disabled={!prev} onClick={() => step(-1)} aria-label="이전 슬라이드">
-              <IconChevronLeft />
-            </button>
-            <span className="bottombar__count">
-              {current.index + 1} <small>/ {deck.length}</small>
-            </span>
-            <button type="button" className="bottombar__btn bottombar__btn--next" disabled={!next} onClick={() => step(1)} aria-label="다음 슬라이드">
-              <IconChevronRight />
-            </button>
-          </nav>
-        )}
-      </div>
-
-      {drawer && (
-        <div className="drawer-backdrop" onClick={() => setDrawer(false)}>
-          <aside className="sidebar drawer" onClick={(e) => e.stopPropagation()} aria-label="일정 목록">
-            <button type="button" className="drawer__close sidebar__icon-btn" onClick={() => setDrawer(false)} aria-label="닫기">
-              <IconClose size="1.1rem" />
-            </button>
-            <Sidebar current={current} route={route} profile={profile} onNavigate={() => setDrawer(false)} onRole={() => (setDrawer(false), setRoleSheet(true))} />
-          </aside>
+          <button type="button" className="icon-btn" onClick={() => setSheet('menu')} aria-label="내 정보와 메뉴">
+            <Icon name="user" />
+          </button>
         </div>
-      )}
+      </header>
 
-      {current && panel === 'attendance' && profile.role === 'teacher' && (
-        <Sheet title={`출석 체크 · ${current.title}`} onClose={() => setPanel(null)}>
-          <AttendancePanel slide={current} defaultClass={profile.classNo} />
-        </Sheet>
-      )}
-      {current && panel === 'feedback' && (
-        <Sheet title={`피드백 · ${current.title}`} onClose={() => setPanel(null)}>
-          <FeedbackBox slideId={current.id} title="이 슬라이드 피드백" showTitle={false} />
-        </Sheet>
-      )}
-      {current && panel === 'reflection' && profile.role === 'student' && (
-        <Sheet title={`느낀 점 · ${current.title}`} onClose={() => setPanel(null)}>
-          <ReflectionBox slide={current} classNo={profile.classNo} studentNo={profile.studentNo} />
-        </Sheet>
-      )}
+      <section className="app__map" aria-label="지도">
+        <TripMap page={current} onSelect={(key) => goTo(key)} />
+        <button type="button" className="map-toggle" onClick={() => setMapTall(!mapTall)} aria-label={mapTall ? '지도 작게' : '지도 크게'}>
+          <Icon name={mapTall ? 'collapse' : 'expand'} size="1.1rem" />
+        </button>
+      </section>
 
-      {roleSheet && (
-        <Sheet title="역할 바꾸기" onClose={() => setRoleSheet(false)}>
-          <RolePicker onDone={() => setRoleSheet(false)} />
-        </Sheet>
-      )}
+      <DayStrip page={current} nowKey={nowInfo.page?.key ?? null} onSelect={(key) => goTo(key, { replace: true })} />
+
+      <main className="app__content">
+        <Pager index={current.index} count={pages.length} onChange={go} render={(i) => <PageView page={pages[i]} />} />
+      </main>
+
+      <nav className="bottombar" aria-label="장 넘기기">
+        <button type="button" className="bottombar__prev" onClick={() => go(current.index - 1)} disabled={!prev} aria-label={prev ? `이전: ${pageTitle(prev)}` : '처음 장'}>
+          <Icon name="chevronLeft" />
+        </button>
+        <div className="bottombar__pos" aria-live="polite">
+          <span className="mono">{String(current.chapter.pages.indexOf(current) + 1).padStart(2, '0')}</span>
+          <span className="bottombar__of">/ {String(current.chapter.pages.length).padStart(2, '0')}</span>
+        </div>
+        <button type="button" className="bottombar__next" onClick={() => go(current.index + 1)} disabled={!next}>
+          {next ? (
+            <>
+              <span className="bottombar__next-text">
+                <span className="bottombar__next-kicker">{next.chapter !== current.chapter ? next.chapter.label : nextTime(next) || '다음'}</span>
+                <span className="bottombar__next-title">{rich(next.type === 'day' ? next.day.title : next.slide.title)}</span>
+              </span>
+              <Icon name="chevronRight" />
+            </>
+          ) : (
+            <span className="bottombar__next-text">
+              <span className="bottombar__next-title">마지막 장이에요</span>
+            </span>
+          )}
+        </button>
+      </nav>
+
+      {sheet === 'schedule' ? <ScheduleSheet current={current} nowKey={nowInfo.page?.key ?? null} onJump={jump} onClose={() => setSheet(null)} /> : null}
+      {sheet === 'menu' ? <MenuSheet onJump={jump} onClose={() => setSheet(null)} onLock={onLock} /> : null}
+      <span className="sr-only" aria-live="polite">
+        {current.chapter.label} {pageTitle(current)}
+      </span>
     </div>
   )
+}
+
+export function pageTitle(p: Page): string {
+  return p.type === 'day' ? `${p.chapter.label} ${p.day.title}` : p.slide.title
+}
+
+function nextTime(p: Page): string {
+  return p.type === 'slide' && p.slide.time ? p.slide.time.start : ''
+}
+
+function dateShort(ymd: string, weekday?: string) {
+  const [, m, d] = ymd.split('-').map(Number)
+  return `${m}/${d}${weekday ? ` ${weekday}` : ''}`
 }

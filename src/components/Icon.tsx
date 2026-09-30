@@ -1,28 +1,266 @@
 /**
- * 아이콘 (galpi2 아이콘 세트에서 가져온 것 + 이 사이트에 필요한 것 몇 개)
+ * 아이콘 한 벌. 화면의 기호는 모두 여기서 그린다(이모지·문자 기호 금지).
  *
- * 공통 규격
- *   · viewBox 24×24, fill 없음, 선만 사용
- *   · stroke 는 currentColor → 색은 쓰는 곳의 글자색(Expedition 팔레트)을 그대로 따라간다
- *   · stroke-width 기본 1.8 (규격 1.6~2 안), linecap·linejoin 은 round 로 통일
- *   · size 는 rem 단위 기본값이라 Ctrl+휠 글자 크기 조절을 같이 따라간다
+ * 규격: viewBox 24×24, 선만(fill 없음), stroke = currentColor, 굵기 1.8, 끝은 둥글게.
+ * 그림은 viewBox 가운데(12,12)에 맞춰 그렸다. 크기는 rem 이라 글자 확대를 따라간다.
  */
+import type { SVGProps } from 'react'
 
-import type { ReactNode, SVGProps } from "react";
+const PATHS = {
+  chevronLeft: <path d="m14.5 5.5-6.5 6.5 6.5 6.5" />,
+  chevronRight: <path d="m9.5 5.5 6.5 6.5-6.5 6.5" />,
+  chevronDown: <path d="m5.5 9.5 6.5 6.5 6.5-6.5" />,
+  close: (
+    <>
+      <path d="m6 6 12 12" />
+      <path d="m18 6-12 12" />
+    </>
+  ),
+  bus: (
+    <>
+      <rect x="5" y="3.5" width="14" height="15" rx="2.5" />
+      <path d="M5 12.5h14M5 8h14" />
+      <path d="M8 18.5v2M16 18.5v2" />
+      <circle cx="8.5" cy="15.5" r="0.6" fill="currentColor" />
+      <circle cx="15.5" cy="15.5" r="0.6" fill="currentColor" />
+    </>
+  ),
+  walk: (
+    <>
+      <circle cx="13" cy="4.5" r="1.8" />
+      <path d="m10.5 21 2-6 2.5 2.5V21" />
+      <path d="M8 12.5 10.5 9l3 .5 2.5 3.5 2 .5" />
+      <path d="m10.5 9-1 4.5 3 1.5" />
+    </>
+  ),
+  plane: <path d="M10.2 20.5 12 14.8l-5 1.7-1.3-1.3 5.6-4.5L5 6.4l1.5-1.5 7.4 3.1 3.6-3.7a1.8 1.8 0 0 1 2.6 2.6l-3.7 3.6 3.1 7.4-1.5 1.5-4.3-6.3-4.5 5.6z" />,
+  boat: (
+    <>
+      <path d="M4 15.5h16l-2.2 4H6.2z" />
+      <path d="M6.5 15.5v-5h11v5" />
+      <path d="M9.5 10.5v-3h5v3" />
+      <path d="M12 7.5v-3" />
+    </>
+  ),
+  pin: (
+    <>
+      <path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z" />
+      <circle cx="12" cy="10" r="2.3" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
+  flag: (
+    <>
+      <path d="M6 21V4" />
+      <path d="M6 4.5h10.5l-2 4 2 4H6" />
+    </>
+  ),
+  alert: (
+    <>
+      <path d="M12 3.8 21 19.5H3z" />
+      <path d="M12 10v4.2" />
+      <circle cx="12" cy="17" r="0.6" fill="currentColor" />
+    </>
+  ),
+  bulb: (
+    <>
+      <path d="M9 17.5h6M10 20.5h4" />
+      <path d="M12 3.5a5.5 5.5 0 0 0-3.2 10c.6.5 1 1.2 1 2V17h4.4v-1.5c0-.8.4-1.5 1-2A5.5 5.5 0 0 0 12 3.5z" />
+    </>
+  ),
+  check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  photo: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+      <circle cx="9" cy="10" r="1.8" />
+      <path d="m20.5 15.5-4.8-4.5L6 19" />
+    </>
+  ),
+  expand: (
+    <>
+      <path d="M4.5 9.5v-5h5M19.5 9.5v-5h-5M4.5 14.5v5h5M19.5 14.5v5h-5" />
+    </>
+  ),
+  collapse: (
+    <>
+      <path d="M9.5 4.5v5h-5M14.5 4.5v5h5M9.5 19.5v-5h-5M14.5 19.5v-5h5" />
+    </>
+  ),
+  menu: <path d="M4.5 7h15M4.5 12h15M4.5 17h15" />,
+  user: (
+    <>
+      <circle cx="12" cy="8.5" r="3.8" />
+      <path d="M4.8 20.5a7.2 7.2 0 0 1 14.4 0" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8.5" r="3.3" />
+      <path d="M3.5 19.5a5.5 5.5 0 0 1 11 0" />
+      <path d="M15 5.5a3.3 3.3 0 0 1 0 6.3M17 14.2a5.5 5.5 0 0 1 3.5 5.3" />
+    </>
+  ),
+  bed: (
+    <>
+      <path d="M3.5 18.5V6M3.5 14h17v4.5M20.5 14v-2.5a3 3 0 0 0-3-3H11V14" />
+      <circle cx="7" cy="11" r="1.8" />
+    </>
+  ),
+  meal: (
+    <>
+      <path d="M7 3.5v7.5M4.5 3.5V8a2.5 2.5 0 0 0 5 0V3.5M7 11v9.5" />
+      <path d="M17 20.5V3.5c-2.2 1.2-3.3 3.6-3.3 7.5H17" />
+    </>
+  ),
+  campus: (
+    <>
+      <path d="M3.5 9 12 4.5 20.5 9z" />
+      <path d="M5.5 9v8M9.8 9v8M14.2 9v8M18.5 9v8" />
+      <path d="M3.5 19.5h17" />
+    </>
+  ),
+  lecture: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="11" rx="1.5" />
+      <path d="M8 20l4-4.5 4 4.5" />
+    </>
+  ),
+  museum: (
+    <>
+      <path d="M12 3.5 20.5 8h-17z" />
+      <path d="M5.5 8v9.5M10 8v9.5M14 8v9.5M18.5 8v9.5" />
+      <path d="M3.5 20.5h17M4.5 17.5h15" />
+    </>
+  ),
+  bag: (
+    <>
+      <path d="M5 8h14l-1.2 12.5H6.2z" />
+      <path d="M9 10V6.5a3 3 0 0 1 6 0V10" />
+    </>
+  ),
+  phone: <path d="M8.6 4.5 6.3 4a1.8 1.8 0 0 0-2 1.5c-.6 7.5 6.7 14.8 14.2 14.2a1.8 1.8 0 0 0 1.5-2l-.5-2.3a1.5 1.5 0 0 0-1.7-1.2l-2.3.5a12 12 0 0 1-4.9-4.9l.5-2.3a1.5 1.5 0 0 0-1.2-1.7z" />,
+  lock: (
+    <>
+      <rect x="5" y="10.5" width="14" height="10" rx="2" />
+      <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2" />
+      <path d="M15.5 8.5V6A2 2 0 0 0 13.5 4H6A2 2 0 0 0 4 6v7.5a2 2 0 0 0 2 2h2.5" />
+    </>
+  ),
+  share: (
+    <>
+      <path d="M12 15V4M8 7.5 12 4l4 3.5" />
+      <path d="M8 11H6.5A2 2 0 0 0 4.5 13v5.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V13a2 2 0 0 0-2-2H16" />
+    </>
+  ),
+  external: (
+    <>
+      <path d="M13.5 4.5h6v6M19.5 4.5l-8 8" />
+      <path d="M17.5 14v4a2 2 0 0 1-2 2h-9.5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2h4" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="4" y="5.5" width="16" height="15" rx="2" />
+      <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" />
+    </>
+  ),
+  locate: (
+    <>
+      <circle cx="12" cy="12" r="6.5" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+      <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
+    </>
+  ),
+  list: (
+    <>
+      <path d="M9 7h11M9 12h11M9 17h11" />
+      <circle cx="4.8" cy="7" r="0.9" fill="currentColor" />
+      <circle cx="4.8" cy="12" r="0.9" fill="currentColor" />
+      <circle cx="4.8" cy="17" r="0.9" fill="currentColor" />
+    </>
+  ),
+  pen: (
+    <>
+      <path d="M15.5 4.8 19.2 8.5 8.5 19.2 4 20l.8-4.5z" />
+      <path d="m13.5 6.8 3.7 3.7" />
+    </>
+  ),
+  seat: (
+    <>
+      <path d="M7 4.5h6a2 2 0 0 1 2 2v7H7z" />
+      <path d="M5 13.5h12a2 2 0 0 1 2 2v1.5H5z" />
+      <path d="M7 17v3M17 17v3" />
+    </>
+  ),
+  star: <path d="m12 4 2.4 5 5.3.6-3.9 3.6 1 5.3L12 15.9l-4.8 2.6 1-5.3-3.9-3.6 5.3-.6z" />,
+  info: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5.5" />
+      <circle cx="12" cy="7.8" r="0.6" fill="currentColor" />
+    </>
+  ),
+  document: (
+    <>
+      <path d="M13.5 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z" />
+      <path d="M13.5 3.5V9H19M8.5 13h7M8.5 16.5h5" />
+    </>
+  ),
+  wallet: (
+    <>
+      <rect x="3.5" y="6" width="17" height="13.5" rx="2.5" />
+      <path d="M3.5 10h17M15.5 14.5h2" />
+    </>
+  ),
+  shirt: <path d="M8.5 4.5 4 7l1.8 4 2.2-1v10.5h8V10l2.2 1L20 7l-4.5-2.5a3.5 3.5 0 0 1-7 0z" />,
+  shield: (
+    <>
+      <path d="M12 3.5 19 6v5.5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z" />
+      <path d="m9 12 2.2 2.2L15.5 10" />
+    </>
+  ),
+  battery: (
+    <>
+      <rect x="3.5" y="7.5" width="15" height="9" rx="2" />
+      <path d="M20.5 10.5v3" />
+      <path d="M7 10.5v3M10 10.5v3" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.5 12h17" />
+      <path d="M12 3.5c2.4 2.3 3.6 5.2 3.6 8.5s-1.2 6.2-3.6 8.5c-2.4-2.3-3.6-5.2-3.6-8.5S9.6 5.8 12 3.5z" />
+    </>
+  ),
+  arrowRight: <path d="M4.5 12h14.5M13.5 6.5 19 12l-5.5 5.5" />,
+  refresh: (
+    <>
+      <path d="M19.5 7.5A8 8 0 1 0 20 13" />
+      <path d="M20 3.5v4.5h-4.5" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5" />
+      <path d="M4.5 19.5h15" />
+    </>
+  ),
+} as const
 
-export interface IconProps extends Omit<SVGProps<SVGSVGElement>, "children"> {
-  /** 아이콘 한 변의 길이. 숫자를 주면 px, 문자열이면 그대로 쓴다. 기본은 1.25rem. */
-  size?: number | string;
-  /** 선 굵기. 세트 기본값 1.8 을 벗어나지 않게 쓴다. */
-  strokeWidth?: number;
-}
+export type IconName = keyof typeof PATHS
 
-function Icon({
-  size = "1.25rem",
-  strokeWidth = 1.8,
-  children,
-  ...rest
-}: IconProps & { children: ReactNode }) {
+export function Icon({ name, size = '1.25rem', strokeWidth = 1.8, label, ...rest }: { name: IconName; size?: number | string; strokeWidth?: number; label?: string } & Omit<SVGProps<SVGSVGElement>, 'children'>) {
   return (
     <svg
       width={size}
@@ -33,242 +271,30 @@ function Icon({
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
-      aria-hidden="true"
+      aria-hidden={label ? undefined : true}
+      role={label ? 'img' : undefined}
+      aria-label={label}
       focusable="false"
+      className="icon"
       {...rest}
     >
-      {children}
+      {PATHS[name]}
     </svg>
-  );
+  )
 }
 
-/** 닫기·취소 */
-export function IconClose(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="m6 6 12 12" />
-      <path d="m18 6-12 12" />
-    </Icon>
-  );
+/** 장 종류별 아이콘 */
+export const KIND_ICON: Record<string, IconName> = {
+  guide: 'info',
+  day: 'calendar',
+  move: 'bus',
+  flight: 'plane',
+  campus: 'campus',
+  lecture: 'lecture',
+  culture: 'museum',
+  meal: 'meal',
+  hotel: 'bed',
+  shopping: 'bag',
 }
 
-/** 이전 */
-export function IconChevronLeft(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="m14.8 5.8-6.2 6.2 6.2 6.2" />
-    </Icon>
-  );
-}
-
-/** 다음 */
-export function IconChevronRight(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="m9.2 5.8 6.2 6.2-6.2 6.2" />
-    </Icon>
-  );
-}
-
-/** 펼치기 */
-export function IconChevronDown(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="m5.8 9.2 6.2 6.2 6.2-6.2" />
-    </Icon>
-  );
-}
-
-/** 삭제·연결 해제 */
-export function IconTrash(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M4.5 7h15" />
-      <path d="M9 3.8h6l.8 3.2H8.2z" />
-      <path d="M6.5 7 7.4 20h9.2l.9-13" />
-      <path d="M10 10.4v5.8" />
-      <path d="M14 10.4v5.8" />
-    </Icon>
-  );
-}
-
-/** 자물쇠 (개인정보를 가린 상태) */
-export function IconLock(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <rect x="4.6" y="10.4" width="14.8" height="10.2" rx="2.2" />
-      <path d="M8.2 10.4V7.6a3.8 3.8 0 0 1 7.6 0v2.8" />
-      <path d="M12 14.4v2.4" />
-    </Icon>
-  );
-}
-
-/** 펜 (직접 가리기) */
-export function IconPen(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M15.2 4.4 19.6 8.8" />
-      <path d="M3.4 20.6 4.6 16.4 15.9 5.1a2 2 0 0 1 2.83 0l1.17 1.17a2 2 0 0 1 0 2.83L8.6 20.4z" />
-    </Icon>
-  );
-}
-
-/** 체크 */
-export function IconCheck(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M4.6 12.6 9.6 17.6 19.4 6.8" />
-    </Icon>
-  );
-}
-
-/** 뒤로가기 (IconArrowRight 를 좌우로 뒤집은 것, 가로 여백 4·5 를 그대로 맞춘다) */
-export function IconArrowLeft(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M20 12H5" />
-      <path d="m11 6-6 6 6 6" />
-    </Icon>
-  );
-}
-
-/** 화살표 (다음으로) */
-export function IconArrowRight(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M4 12h15" />
-      <path d="m13 6 6 6-6 6" />
-    </Icon>
-  );
-}
-
-/** 경고 */
-export function IconWarning(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M12 3.6 21.2 19.8a1 1 0 0 1-.87 1.5H3.67a1 1 0 0 1-.87-1.5z" />
-      <path d="M12 9.6v4.6" />
-      <path d="M12 17.4h.01" />
-    </Icon>
-  );
-}
-
-/** 크게 보기 (네 귀퉁이가 바깥을 향한다) */
-export function IconMaximize(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M8.8 3.2H3.2v5.6" />
-      <path d="M15.2 3.2h5.6v5.6" />
-      <path d="M8.8 20.8H3.2v-5.6" />
-      <path d="M15.2 20.8h5.6v-5.6" />
-    </Icon>
-  );
-}
-
-/** 원래 크기로 (네 귀퉁이가 안쪽을 향한다) */
-export function IconMinimize(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M3.2 8.8h5.6V3.2" />
-      <path d="M20.8 8.8h-5.6V3.2" />
-      <path d="M3.2 15.2h5.6v5.6" />
-      <path d="M20.8 15.2h-5.6v5.6" />
-    </Icon>
-  );
-}
-
-/* ── 이 사이트에서 더한 아이콘 (같은 규격) ─────────────────────── */
-
-/** 지도 핀 */
-export function IconPin(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
-      <circle cx="12" cy="10" r="2.4" />
-    </Icon>
-  );
-}
-
-/** 복사 */
-export function IconCopy(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.4" />
-      <path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5" />
-    </Icon>
-  );
-}
-
-/** 메뉴 (가로줄 셋) */
-export function IconMenu(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M4 7h16" />
-      <path d="M4 12h16" />
-      <path d="M4 17h16" />
-    </Icon>
-  );
-}
-
-/** 시계 */
-export function IconClock(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.5V12l3 2" />
-    </Icon>
-  );
-}
-
-/** 사람들 (출석) */
-export function IconUsers(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <circle cx="9" cy="8.5" r="3.2" />
-      <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
-      <path d="M15.5 5.6a3.2 3.2 0 0 1 0 6" />
-      <path d="M17.5 13.6A5.5 5.5 0 0 1 20.5 19" />
-    </Icon>
-  );
-}
-
-/** 말풍선 (피드백) */
-export function IconMessage(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M20 12.5a7.5 7.5 0 0 1-11 6.6L4 20l1-4.2A7.5 7.5 0 1 1 20 12.5Z" />
-    </Icon>
-  );
-}
-
-/** 사진 */
-export function IconPhoto(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <rect x="3.5" y="5" width="17" height="14" rx="2.4" />
-      <circle cx="9" cy="10" r="1.6" />
-      <path d="m20.5 15.5-4.5-4.5-8.5 8" />
-    </Icon>
-  );
-}
-
-/** 지도 (접은 종이 지도) */
-export function IconMap(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M9 4.5 3.5 6.5v13L9 17.5l6 2 5.5-2v-13L15 6.5l-6-2Z" />
-      <path d="M9 4.5v13" />
-      <path d="M15 6.5v13" />
-    </Icon>
-  );
-}
-
-/** 보내기 (종이비행기) */
-export function IconSend(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M20.5 3.5 10 14" />
-      <path d="m20.5 3.5-6.5 17-4-6.5-6.5-4 17-6.5Z" />
-    </Icon>
-  );
-}
+export const LEG_ICON: Record<string, IconName> = { bus: 'bus', walk: 'walk', flight: 'plane', boat: 'boat' }

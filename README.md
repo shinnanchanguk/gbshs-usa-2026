@@ -1,42 +1,66 @@
 # USA 2026 · 미국 이공계 진로체험학습 안내 사이트
 
-경기북과학고등학교 1학년 해외 이공계 진로체험학습(2026. 10. 15.~10. 23., 미국 동부) 안내 자료입니다.
-슬라이드를 넘기면서 **시간 · 장소 · 할 일 · 유의사항**을 확인하고, 지도에서 그날 동선을 봅니다.
+경기북과학고등학교 1학년 해외 이공계 진로체험학습(2026. 10. 15.~10. 23., 미국 동부 6박 9일) 안내 사이트입니다.
+장을 한 장씩 넘기면 그 순서가 곧 시간표이고 버스 동선이며, 지도가 앞 장소에서 이 장소까지 오는 길을 따라 그립니다.
 
-- 사이트: https://shinnanchanguk.github.io/gbshs-usa-2026/ (입장 번호는 담임 선생님께)
-- 내용 출처: 운영계획(안) 세부 일정표 + 2026. 9. 21. 사전답사 결과 공유 회의 + 답사 사진
+- 사이트: https://shinnanchanguk.github.io/gbshs-usa-2026/ (입장 코드는 담임 선생님께)
+- 내용 출처: 운영계획(안)·수정(안), 9/21 사전답사 결과 공유 회의, 9/30 학생 브리핑·면책/의료 동의서 설명, 버스 좌석표·객실 배치도, 답사 사진
 
 ## 무엇이 들어 있나
 
-| 기능 | 설명 |
+| 묶음 | 내용 |
 |---|---|
-| 일정 사이드 패널 | 공통 안내 + 1~9일차. 일차를 누르면 그날 슬라이드 시간표가 펼쳐지고 지도가 그날 동선으로 이동 |
-| 슬라이드 | 시간 · 제목 · 대표 사진 · 설명 · 유의사항 · 집결 장소. ←/→ 키, 휴대폰은 좌우로 밀어서 넘김 |
-| 지도 | MapLibre + OpenFreeMap (무료, API 키 없음). 시간 순서 번호 핀, 지금 슬라이드는 라임색 |
-| 출석 체크 (선생님) | 장소 슬라이드마다 반별 번호판. 번호를 누르면 출석, 반 전원이면 "출석 완료"가 지도 핀·사이드바에 표시 |
-| 느낀 점 (학생) | 슬라이드마다 소감 칸, 자동 저장. "내 소감 모아보기"에서 한꺼번에 복사 |
-| 피드백 (선생님) | 슬라이드마다 + 사이트 전체 피드백 입력칸. **프롬프트 복사**를 누르면 어느 슬라이드·어느 파일인지까지 담긴 글이 복사됨 |
+| 출발 전 | 날짜별 할 일, 면책·의료 동의서 쓰는 법, 챙길 것(체크), 꼭 지킬 약속, 돈과 결제(팁 계산), 휴대폰·비행 준비, 버스와 내 자리, 숙소와 방, 멘토, 비상 연락처 |
+| 1~9일차 | 일차 표지(식사·숙소·시간 척추) → 장소마다 한 장: 시각·머무는 시간, 오는 길(수단·시간·거리), 사진, 할 일, 꼭 지킬 것, 답사 선생님 요령, 다시 모이는 곳·시각 |
+| 다녀와서 | 도착 뒤 일정, 발표회 보고서(느낀 점을 활동 주제별로 모아 초안 복사) |
 
-> 지금은 시험 운영 중이라 누구나 선생님/학생 역할을 바꿔 가며 써 볼 수 있습니다.
-> **DB가 없습니다.** 출석 · 소감 · 피드백은 그 기기의 브라우저에만 저장됩니다(다른 사람과 자동 공유되지 않음).
+역할(오른쪽 위 사람 단추)
+
+- 학생: 내 호차·자리·짝·방·도우미 역할, 장마다 느낀 점(활동 주제 표시)
+- 선생님: 장마다 인원 확인(반별 번호판 또는 버스 좌석표), 선생님 메모(자료가 바뀐 점·확인할 것), 업무 분장·야간 근무
+- 보호자: 모든 시각 옆에 한국 시각, 우리 아이 자리·방
+
+지도는 MapLibre + OpenFreeMap(키 없음)이고, 장소 사이 길은 OSRM(OpenStreetMap)으로 미리 계산해 `content/routes.json`에 넣어 두었습니다.
+한 번 연 화면·사진·지도는 기기에 저장돼 해외에서 인터넷이 약해도 열립니다(서비스 워커).
+
+> **DB가 아직 없습니다.** 느낀 점·인원 확인·체크리스트는 그 휴대폰에만 저장됩니다. 저장 코드는 `src/lib/repo.ts` 한곳에 모아 두어 로그인·DB를 붙일 때 이 파일만 바꾸면 됩니다.
+
+## 입장 코드와 명단 (공개 레포)
+
+학생 이름·좌석·객실·인솔교사 연락처·멘토 이름은 **암호문(`content/roster.enc.json`)으로만** 레포에 있습니다.
+입장 코드로 PBKDF2(60만 번) 열쇠를 만들어 AES-GCM으로 풉니다. 코드를 모르면 내용을 볼 수 없습니다.
+건강 정보(요보호 학생 명단)는 암호문에도 넣지 않습니다.
+
+- 코드·원본은 레포 밖 `private/`(.gitignore)에만 있습니다: `private/access-code.txt`, `private/roster.json`
+- 명단이 바뀌면 `private/roster.json`을 고친 뒤 `npm run roster:seal`로 암호문을 다시 만듭니다.
+- 코드를 바꾸려면 `private/access-code.txt`를 지우고 `npm run roster:seal`을 실행합니다(새 코드가 생기고, 이미 들어온 기기는 다시 입력).
+- 카톡으로 `https://shinnanchanguk.github.io/gbshs-usa-2026/#/code/<코드>` 링크를 보내면 누르기만 해도 열립니다(코드는 `#` 뒤라 서버로 가지 않음).
 
 ## 폴더 구조
 
 ```
 content/
-  trip.json              여행 기본 정보, 반별 학생 수(출석판 번호 개수)
-  days/day0.json         공통 안내
-  days/day1.json ~ day9.json   일차별 슬라이드
+  trip.json              여행 전체: 반·버스·숙소·항공·마감일·챙길 것·연락처·서류 작성법·멘토
+  days/day0.json         출발 전
+  days/day1~9.json       일차별 장
+  days/day10.json        다녀와서
+  seating.json           버스 좌석 구조(이름 없음)
+  routes.json            장소 사이 실제 길(npm run routes 로 만듦)
+  roster.enc.json        명단 암호문(npm run roster:seal 로 만듦)
   photo-sources.json     사진 목록 (npm run photos:import 가 만듦)
-  photo-excluded.json    개인정보 등으로 뺀 사진과 이유
-public/photos/           웹용으로 줄인 사진 (s<답사일>/f<폴더번호>/…webp)
 src/
   content/schema.ts      데이터 구조 설명 + 검사 규칙 ← 내용 고치기 전에 먼저 읽기
-  features/…             화면 (지도, 슬라이드, 출석, 소감, 피드백, 입장 번호)
-  styles/                디자인 (galpi2 Expedition 디자인 토큰·글꼴)
+  content/index.ts       장을 한 줄로 이어 붙이고 앞 장소·길·시각을 계산
+  features/…             지도, 넘기기, 장 화면, 위젯(좌석·방·연락처·보고서), 출석, 느낀 점
+  lib/repo.ts            사용자 기록 저장(지금은 기기 저장, 나중에 DB)
+  lib/roster.ts          명단 암호문 풀기
+  styles/                디자인(크로마 테마: 도름슬라이드 경기도교육청 연수 덱)
+public/sw.js             오프라인 저장
 scripts/
+  check-content.mjs      내용 검사 (빌드 전에 자동 실행, 공개 파일에 명단 이름이 새는지도 검사)
+  build-routes.mjs       장소 사이 길 받기
+  seal-roster.mjs        명단 암호문 만들기
   import-photos.mjs      답사 사진 → 웹용 WebP (EXIF·GPS 제거)
-  check-content.mjs      내용 검사 (빌드 전에 자동 실행)
 ```
 
 ## 내 컴퓨터에서 실행하기
@@ -48,53 +72,35 @@ npm install
 npm run dev        # http://localhost:5173/gbshs-usa-2026/
 npm run check      # 내용 검사만
 npm run build      # 검사 + 타입 검사 + 배포용 빌드(dist/)
+npm run routes     # 장소 좌표를 바꿨으면 길 다시 받기
 ```
+
+미리 보기: 주소에 `?now=2026-10-16T10:30-04:00`을 붙이면 그 순간이 "지금"인 것처럼 보입니다.
 
 ## 내용 고치기
 
-1. `content/days/dayN.json`에서 해당 슬라이드(`id`로 찾기)를 고칩니다. 각 칸의 뜻은 `src/content/schema.ts` 주석에 있습니다.
-2. `npm run check`로 검사합니다. 시각 순서, 사진 파일, 좌표 범위, id 중복 등을 확인합니다.
-3. 커밋하고 `main`에 push하면 GitHub Actions가 자동으로 사이트를 다시 배포합니다(1~2분).
+1. `content/days/dayN.json`에서 해당 장(`id`로 찾기)을 고칩니다. 칸의 뜻은 `src/content/schema.ts` 주석에 있습니다.
+2. 장소 좌표를 바꿨으면 `npm run routes`로 길을 다시 받습니다.
+3. `npm run check`로 검사하고, 커밋해서 `main`에 push하면 GitHub Actions가 다시 배포합니다(1~2분).
 
 주의할 점
 
-- 슬라이드 `id`는 바꾸지 마세요. 링크와 출석 기록이 id에 묶여 있습니다.
+- 장 `id`는 바꾸지 마세요. 링크와 느낀 점·출석 기록이 id에 묶여 있습니다.
 - 좌표는 `[경도, 위도]` 순서입니다. 구글 지도에서 복사한 `(위도, 경도)`와 반대입니다.
-- **공개 레포입니다.** 학생·교사 이름, 전화번호, 건강 정보, 객실·좌석 배정은 절대 넣지 마세요.
+- **공개 레포입니다.** 학생·교사 이름, 전화번호, 건강 정보, 객실·좌석 배정은 공개 파일에 넣지 마세요(`npm run check`가 `private/roster.json`의 이름으로 공개 파일을 검사합니다).
 
 ## 사진 추가하기
 
 1. 구글 드라이브에서 답사 사진 폴더를 받아 압축을 풉니다. 폴더 모양은 `N일차_날짜/NN_분류_장소/사진.jpg`여야 합니다.
-2. 레포 **밖** 폴더에 두고 실행합니다.
-   ```bash
-   npm run photos:import -- ../답사사진
-   ```
-   동영상(.mp4, .mov)은 [ffmpeg](https://ffmpeg.org)가 설치돼 있으면 웹용 MP4(1280px)와 표지 사진으로 바뀌어 사진처럼 들어갑니다(사진 보기 창에서 재생).
-3. 새 사진이 `content/photo-sources.json`에 추가됩니다. 각 사진을 알맞은 슬라이드의 `photos`에 `{ "id": …, "caption": … }`로 넣습니다.
-   `npm run check`는 **받은 사진이 모두 어딘가에 쓰였는지** 확인합니다. 쓰지 않을 사진은 `content/photo-excluded.json`에 이유와 함께 적고 다시 `photos:import`를 실행하면 목록과 파일에서 빠집니다.
-
-## 선생님 피드백 반영하기
-
-선생님이 사이트에서 **프롬프트 복사**로 보내 준 글에는 위치(일차·슬라이드·링크), 파일 경로(`content/days/dayN.json → slides[id="…"]`), 지금 적힌 내용, 피드백이 들어 있습니다.
-그 글을 그대로 AI 코딩 도구(Claude Code 등)에 붙여 넣으면 이 레포의 `CLAUDE.md` 규칙에 따라 해당 파일을 고칩니다. 사람이 직접 고쳐도 됩니다.
-
-## 입장 번호 바꾸기
-
-`src/features/pin/PinGate.tsx`의 `PIN_HASH`를 새 번호의 SHA-256 값으로 바꿉니다.
-
-```bash
-printf '새번호' | sha256sum
-```
-
-입장 번호는 화면을 가리는 장치일 뿐입니다. 레포가 공개되어 있으므로 비밀이어야 하는 정보는 애초에 넣지 않습니다.
+2. 레포 **밖** 폴더에 두고 `npm run photos:import -- ../답사사진`을 실행합니다.
+3. 새 사진을 알맞은 장의 `photos`에 넣습니다. 쓰지 않을 사진은 `content/photo-excluded.json`에 이유와 함께 적습니다.
 
 ## 배포
 
 `main` 브랜치에 push하면 `.github/workflows/deploy.yml`이 검사 → 빌드 → GitHub Pages 배포를 합니다.
-처음 한 번은 레포 Settings → Pages → Source를 **GitHub Actions**로 둡니다.
 
 ## 사용한 것과 라이선스
 
-- React, Vite, TypeScript, MapLibre GL JS, 지도 타일 [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles © OpenStreetMap contributors)
-- 디자인: galpi2 Expedition 디자인 토큰
-- 글꼴: Paperlogy, Manrope, Syne — SIL Open Font License 1.1 (`LICENSES/`)
+- React, Vite, TypeScript, MapLibre GL JS, 지도 타일 [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles © OpenStreetMap contributors), 경로 계산 [OSRM](https://project-osrm.org) (© OpenStreetMap contributors)
+- 디자인: 도름슬라이드 크로마 테마
+- 글꼴: Space Grotesk, JetBrains Mono, Wanted Sans(한글 2,350자 부분 글꼴) · SIL Open Font License 1.1 (`LICENSES/`)

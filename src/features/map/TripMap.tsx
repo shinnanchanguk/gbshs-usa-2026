@@ -1,107 +1,110 @@
 /**
  * 여행 지도 (MapLibre + OpenFreeMap, API 키 없음).
  *
- * - 처음에는 미국 동부 전체 경로를 보여 주고, 일차를 고르면 그날 장소들로 날아가 확대한다.
- * - 장소마다 시간 순서 번호 핀을 찍고, 지금 보고 있는 슬라이드의 핀을 라임색으로 강조한다.
- * - 출석판이 있는 장소의 핀 아래에는 반별 출석 완료 점(1~5반)을 붙인다.
- * - 핀 옆에 "14:30 예일대" 같은 시각·이름 라벨을 달아 그날 일정이 지도에서 한눈에 보이게 한다
- *   (라벨은 지도 심볼 레이어라 서로 겹치면 지도가 알아서 몇 개를 숨긴다).
+ * 장을 넘길 때마다 지도가 따라간다.
+ * - 장소가 있는 장: 앞 장소에서 이 장소까지 오는 길을 오렌지로 그리고, 두 곳이 함께 보이게 옮긴다.
+ *   같은 곳이거나 아주 가까우면 그 장소로 가까이 다가간다.
+ * - 일차 표지: 그날 동선 전체
+ * - 출발 전·다녀와서, 장소 없는 장: 여행 전체 동선
+ * - 비행기 장: 지구본으로 바꿔 인천에서 JFK 까지 대원 호를 그린다.
+ * 카메라는 지도 칸이 실제로 보이는 넓이 안에서 여백을 두고 맞춘다(가려지는 부분이 없다).
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { LngLatBounds, Map as MapLibre, Marker, NavigationControl, AttributionControl, setWorkerUrl, type GeoJSONSource } from 'maplibre-gl'
-// MapLibre 6 의 워커는 옆 파일(maplibre-gl-shared.mjs)을 불러오므로, Vite 가 워커와 그 의존 파일을 함께 묶은 주소를 알려 준다.
+import { Map as MapLibre, AttributionControl, setWorkerUrl, type GeoJSONSource, type LngLatBoundsLike } from 'maplibre-gl'
+// MapLibre 6 의 워커는 옆 파일을 불러오므로, Vite 가 워커와 그 의존 파일을 함께 묶은 주소를 알려 준다.
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import type { AllPaintProperties } from '@maplibre/maplibre-gl-style-spec'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { deck, days, trip, type DeckSlide } from '../../content'
-import { isComplete, type AttendanceBook } from '../../app/state'
-import { goToSlide } from '../../lib/router'
+import type { ExpressionSpecification } from '@maplibre/maplibre-gl-style-spec'
+import { slidePages, trip, type Page, type SlidePage } from '../../content'
+import { bbox, greatCircle, type LngLat } from '../../lib/geo'
+import { paintPaper } from './paint'
 
 setWorkerUrl(maplibreWorkerUrl)
 
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron'
-const US_EAST_VIEW = { center: [-74.2, 41.2] as [number, number], zoom: 5.4 }
+const ICN: LngLat = [126.4406, 37.4602]
+const JFK: LngLat = [-73.7781, 40.6413]
+const INK = '#111111'
+const ACCENT = '#ed5a14'
+const PAPER = '#fbf8f2'
+const SHEET = '#fbfaf7'
 
-/** Expedition 팔레트로 지도 바탕색을 맞춘다. 스타일에 없는 레이어는 건너뛴다. */
-function paintExpedition(map: MapLibre) {
-  const set = <K extends keyof AllPaintProperties>(layer: string, prop: K, value: AllPaintProperties[K]) => {
-    if (map.getLayer(layer)) {
-      try {
-        map.setPaintProperty(layer, prop, value)
-      } catch {
-        /* 레이어 종류가 달라 속성이 없으면 그냥 둔다 */
-      }
+const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+
+/** 미국 안에 있는 장소만 (인천은 전체 동선 계산에서 뺀다) */
+const inUS = (c: LngLat) => c[0] < -60
+
+type LegFeature = GeoJSON.Feature<GeoJSON.LineString, { day: number; mode: string; to: string; index: number }>
+
+function legLine(p: SlidePage): LngLat[] | null {
+  if (!p.slide.leg || !p.from?.slide.place || !p.slide.place) return null
+  const a = p.from.slide.place.coords as LngLat
+  const b = p.slide.place.coords as LngLat
+  if (!inUS(a) || !inUS(b)) return null
+  if (p.route?.coords.length) return p.route.coords
+  return [a, b]
+}
+
+function buildData() {
+  const legs: LegFeature[] = []
+  const stops: GeoJSON.Feature<GeoJSON.Point>[] = []
+  const seen = new Map<string, number>()
+  for (const p of slidePages) {
+    const place = p.slide.place
+    if (!place) continue
+    const line = legLine(p)
+    if (line && line.length > 1) {
+      legs.push({
+        type: 'Feature',
+        properties: { day: p.day.n, mode: p.slide.leg?.mode ?? 'bus', to: p.key, index: p.index },
+        geometry: { type: 'LineString', coordinates: line },
+      })
     }
+    // 같은 좌표에 여러 장이 있으면(같은 장소에서 이어지는 일정) 첫 장 번호만 핀으로 둔다.
+    const coordKey = `${p.day.n}:${place.coords.join(',')}`
+    if (seen.has(coordKey)) continue
+    seen.set(coordKey, p.index)
+    stops.push({
+      type: 'Feature',
+      properties: { key: p.key, day: p.day.n, pin: p.pin, index: p.index, hotel: p.slide.kind === 'hotel', name: place.name },
+      geometry: { type: 'Point', coordinates: place.coords },
+    })
   }
-  set('background', 'background-color', '#F7F9FB')
-  set('water', 'fill-color', '#D7E4EA')
-  set('park', 'fill-color', '#E9EEE6')
-  set('landcover_wood', 'fill-color', '#EDF1EA')
-  set('landuse_residential', 'fill-color', '#F1F3F4')
-  set('building', 'fill-color', '#E6E2D6')
-  for (const layer of map.getStyle().layers ?? []) {
-    // 바탕 지명은 연하게 두어 우리 일정 라벨(진한 색)이 먼저 눈에 들어오게 한다.
-    if (layer.type === 'symbol' && layer.id.startsWith('label_')) set(layer.id, 'text-color', '#8AA0AB')
-    if (layer.id.startsWith('boundary_')) set(layer.id, 'line-color', '#9DB1BA')
-  }
+  return { legs, stops }
 }
 
-type DayLine = { n: number; coords: [number, number][] }
-
-function dayLines(): DayLine[] {
-  return days
-    .filter((d) => d.n > 0)
-    .map((d) => ({
-      n: d.n,
-      // 인천(경도 126°)은 미국 지도 경로에서 뺀다.
-      coords: d.slides.flatMap((s) => (s.place && s.place.coords[0] < 0 ? [s.place.coords] : [])),
-    }))
-    .filter((l) => l.coords.length > 1)
-}
-
-function boundsOf(coords: [number, number][]): LngLatBounds | null {
-  if (!coords.length) return null
-  const b = new LngLatBounds(coords[0], coords[0])
-  for (const c of coords) b.extend(c)
-  return b
-}
-
-function pinElement(slide: DeckSlide, book: AttendanceBook, showAttendance: boolean): HTMLButtonElement {
-  const el = document.createElement('button')
-  el.type = 'button'
-  el.className = 'map-pin'
-  el.setAttribute('aria-label', `${slide.pin}. ${slide.title}`)
-  el.title = `${slide.time?.start ?? ''} ${slide.title}`.trim()
-  const num = document.createElement('span')
-  num.className = 'map-pin__num'
-  num.textContent = String(slide.pin)
-  el.appendChild(num)
-  if (showAttendance && slide.attendance) {
-    const dots = document.createElement('span')
-    dots.className = 'map-pin__att'
-    for (const c of trip.classes) {
-      const dot = document.createElement('i')
-      dot.textContent = String(c.no)
-      dot.dataset.done = String(isComplete(book, slide.id, c.no))
-      dots.appendChild(dot)
+/** 이 장에서 카메라가 담을 점들 */
+function framePoints(page: Page): { points: LngLat[]; zoomIn: boolean } {
+  const allUS = slidePages.flatMap((p) => (p.slide.place && inUS(p.slide.place.coords as LngLat) ? [p.slide.place.coords as LngLat] : []))
+  if (page.type === 'day') {
+    const dayPts = page.chapter.pages.flatMap((p) => (p.type === 'slide' && p.slide.place ? [p.slide.place.coords as LngLat] : []))
+    const us = dayPts.filter(inUS)
+    if (us.length) {
+      // 그날 첫 장소로 오는 길(앞날 숙소)도 담는다
+      const first = page.chapter.pages.find((p): p is SlidePage => p.type === 'slide' && !!p.slide.place)
+      const from = first?.from?.slide.place?.coords as LngLat | undefined
+      return { points: from && inUS(from) ? [from, ...us] : us, zoomIn: false }
     }
-    el.appendChild(dots)
+    return { points: dayPts.length ? dayPts : allUS, zoomIn: dayPts.length > 0 }
   }
-  el.addEventListener('click', (e) => {
-    e.stopPropagation()
-    goToSlide(slide.id)
-  })
-  return el
+  const place = page.slide.place
+  if (!place) return { points: allUS, zoomIn: false }
+  const here = place.coords as LngLat
+  if (!inUS(here)) return { points: [here], zoomIn: true }
+  const line = legLine(page)
+  if (line && page.crowKm && page.crowKm > 0.25) return { points: [...line, here], zoomIn: false }
+  return { points: [here], zoomIn: true }
 }
 
-export function TripMap({ current, book, showAttendance }: { current: DeckSlide; book: AttendanceBook; showAttendance: boolean }) {
+export function TripMap({ page, onSelect }: { page: Page; onSelect: (key: string) => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibre | null>(null)
-  const markersRef = useRef<Marker[]>([])
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
-  const lines = useMemo(dayLines, [])
-  const dayN = current.day.n
+  const data = useMemo(buildData, [])
+  const selectRef = useRef(onSelect)
+  selectRef.current = onSelect
+  const animRef = useRef<number | null>(null)
 
   // 지도 만들기 (한 번)
   useEffect(() => {
@@ -111,75 +114,189 @@ export function TripMap({ current, book, showAttendance }: { current: DeckSlide;
       map = new MapLibre({
         container: containerRef.current,
         style: STYLE_URL,
-        center: US_EAST_VIEW.center,
-        zoom: US_EAST_VIEW.zoom,
+        center: [-74.2, 41.2],
+        zoom: 5.2,
         attributionControl: false,
-        cooperativeGestures: false,
         dragRotate: false,
         pitchWithRotate: false,
-        // 한글 라벨은 지도 글꼴 대신 기기 글꼴로 그린다.
-        localIdeographFontFamily: "'Manrope', 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif",
+        fadeDuration: 0,
+        // 한글 이름은 지도 글꼴 대신 기기 글꼴로 그린다.
+        localIdeographFontFamily: "'Wanted Sans', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif",
       })
     } catch {
       setFailed(true)
       return
     }
     map.touchZoomRotate.disableRotation()
-    map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
     map.addControl(new AttributionControl({ compact: true }), 'bottom-right')
-    // 타일을 다 받을 때까지('load') 기다리지 않고, 스타일만 준비되면 경로·핀·라벨을 바로 올린다.
     map.once('style.load', () => {
-      paintExpedition(map)
-      map.addSource('routes', {
+      paintPaper(map)
+      map.addSource('legs', { type: 'geojson', data: { type: 'FeatureCollection', features: data.legs } })
+      map.addSource('stops', { type: 'geojson', data: { type: 'FeatureCollection', features: data.stops } })
+      // 그날 장소는 따로 묶어, 멀리서 볼 때 가까운 장소끼리 "2–4" 처럼 한 핀으로 합친다(가까이 다가가면 다시 나뉜다)
+      map.addSource('stops-day', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterRadius: 26,
+        clusterMaxZoom: 14,
+        clusterProperties: { minPin: ['min', ['get', 'pin']], maxPin: ['max', ['get', 'pin']], minIndex: ['min', ['get', 'index']] },
+      })
+      map.addSource('hotels', {
         type: 'geojson',
         data: {
           type: 'FeatureCollection',
-          features: lines.map((l) => ({ type: 'Feature', properties: { n: l.n }, geometry: { type: 'LineString', coordinates: l.coords } })),
+          features: trip.hotels.map((h) => ({
+            type: 'Feature' as const,
+            properties: { label: `${h.name.replace(/^.*?(내슈아|하노버|베데스다).*$/, '$1')} ${h.nights.length}박` },
+            geometry: { type: 'Point' as const, coordinates: h.coords },
+          })),
+        },
+      })
+      map.addSource('leg-now', { type: 'geojson', lineMetrics: true, data: { type: 'FeatureCollection', features: [] } })
+      map.addSource('flight', { type: 'geojson', lineMetrics: true, data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: greatCircle(ICN, JFK) } } })
+      map.addSource('airports', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [
+            { type: 'Feature', properties: { name: '인천' }, geometry: { type: 'Point', coordinates: ICN } },
+            { type: 'Feature', properties: { name: '뉴욕 JFK' }, geometry: { type: 'Point', coordinates: JFK } },
+          ],
+        },
+      })
+      const round = { 'line-cap': 'round', 'line-join': 'round' } as const
+      // 다른 날 동선: 아주 옅게
+      map.addLayer({ id: 'legs-all', type: 'line', source: 'legs', layout: round, paint: { 'line-color': INK, 'line-opacity': 0.14, 'line-width': 1.5 } })
+      // 그날 동선: 버스는 실선, 걷기는 점선
+      map.addLayer({ id: 'legs-day', type: 'line', source: 'legs', layout: round, filter: ['==', ['get', 'day'], -1], paint: { 'line-color': INK, 'line-opacity': 0.72, 'line-width': 2.6 } })
+      map.addLayer({
+        id: 'legs-day-walk',
+        type: 'line',
+        source: 'legs',
+        layout: round,
+        filter: ['==', ['get', 'day'], -1],
+        paint: { 'line-color': INK, 'line-opacity': 0.8, 'line-width': 2.4, 'line-dasharray': [0.2, 2] },
+      })
+      // 지금 장으로 오는 길: 오렌지, 그려지듯 나타난다
+      map.addLayer({
+        id: 'leg-now-casing',
+        type: 'line',
+        source: 'leg-now',
+        layout: round,
+        paint: { 'line-color': PAPER, 'line-width': 9, 'line-opacity': 0.9 },
+      })
+      map.addLayer({
+        id: 'leg-now',
+        type: 'line',
+        source: 'leg-now',
+        layout: round,
+        paint: { 'line-width': 5, 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, ACCENT, 1, ACCENT] },
+      })
+      // 비행 호
+      // 비행 호: 크로마 그라데이션(파랑 → 보라 → 분홍 → 오렌지)
+      map.addLayer({
+        id: 'flight',
+        type: 'line',
+        source: 'flight',
+        layout: { ...round, visibility: 'none' },
+        paint: { 'line-width': 4, 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#1e5fce', 0.4, '#7a42b8', 0.72, '#c9477f', 1, ACCENT] },
+      })
+      map.addLayer({ id: 'airports', type: 'circle', source: 'airports', layout: { visibility: 'none' }, paint: { 'circle-radius': 6, 'circle-color': INK, 'circle-stroke-color': PAPER, 'circle-stroke-width': 2 } })
+      map.addLayer({
+        id: 'airport-labels',
+        type: 'symbol',
+        source: 'airports',
+        layout: { visibility: 'none', 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 13, 'text-offset': [0, 1.3], 'text-anchor': 'top' },
+        paint: { 'text-color': INK, 'text-halo-color': PAPER, 'text-halo-width': 2 },
+      })
+      // 다른 날 장소: 작은 점
+      map.addLayer({ id: 'stops-all', type: 'circle', source: 'stops', paint: { 'circle-radius': 2.5, 'circle-color': INK, 'circle-opacity': 0.25 } })
+      // 그날 장소: 번호 핀 (지나온 곳은 흐리게)
+      const idx = ['coalesce', ['get', 'index'], ['get', 'minIndex']] as ExpressionSpecification
+      map.addLayer({
+        id: 'stops-day',
+        type: 'circle',
+        source: 'stops-day',
+        paint: {
+          'circle-radius': ['case', ['has', 'point_count'], 13, 10],
+          'circle-color': ['case', ['<', idx, ['global-state', 'current']], '#e4ded2', SHEET],
+          'circle-stroke-color': INK,
+          'circle-stroke-width': ['case', ['<', idx, ['global-state', 'current']], 1.2, 1.8],
         },
       })
       map.addLayer({
-        id: 'routes-all',
-        type: 'line',
-        source: 'routes',
-        paint: { 'line-color': '#2C5263', 'line-opacity': 0.28, 'line-width': 2 },
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        id: 'stops-day-num',
+        type: 'symbol',
+        source: 'stops-day',
+        layout: {
+          'text-field': ['case', ['has', 'point_count'], ['concat', ['to-string', ['get', 'minPin']], '-', ['to-string', ['get', 'maxPin']]], ['to-string', ['get', 'pin']]],
+          'text-font': ['Noto Sans Bold'],
+          'text-size': ['case', ['has', 'point_count'], 10, 11],
+          'text-allow-overlap': true,
+          // 우리 핀 자리를 비워 두게 해 바탕 지명이 핀 밑에 깔리지 않게 한다
+          'text-ignore-placement': false,
+          'text-padding': 9,
+        },
+        paint: { 'text-color': INK },
       })
-      map.addSource('stops', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+      // 숙소 (출발 전 표지·버스·숙소 장에서)
+      map.addLayer({ id: 'hotels', type: 'circle', source: 'hotels', layout: { visibility: 'none' }, paint: { 'circle-radius': 7, 'circle-color': INK, 'circle-stroke-color': PAPER, 'circle-stroke-width': 2 } })
       map.addLayer({
-        id: 'stop-labels',
+        id: 'hotel-labels',
+        type: 'symbol',
+        source: 'hotels',
+        layout: { visibility: 'none', 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Bold'], 'text-size': 12, 'text-anchor': 'left', 'text-offset': [1, 0], 'text-allow-overlap': true, 'text-ignore-placement': false, 'text-padding': 4 },
+        paint: { 'text-color': INK, 'text-halo-color': PAPER, 'text-halo-width': 2 },
+      })
+      // 지금 장소
+      map.addLayer({ id: 'stop-now-halo', type: 'circle', source: 'stops', filter: ['==', ['get', 'key'], ''], paint: { 'circle-radius': 22, 'circle-color': ACCENT, 'circle-opacity': 0.18 } })
+      map.addLayer({ id: 'stop-now', type: 'circle', source: 'stops', filter: ['==', ['get', 'key'], ''], paint: { 'circle-radius': 13, 'circle-color': ACCENT, 'circle-stroke-color': INK, 'circle-stroke-width': 2 } })
+      map.addLayer({
+        id: 'stop-now-num',
         type: 'symbol',
         source: 'stops',
-        layout: {
-          'text-field': ['get', 'label'],
-          'text-font': ['Noto Sans Bold'],
-          'text-size': ['case', ['get', 'active'], 14, 12],
-          'text-anchor': 'left',
-          'text-offset': [1.45, 0],
-          'text-max-width': 10,
-          'text-justify': 'left',
-          'symbol-sort-key': ['case', ['get', 'active'], 0, 1],
-        },
-        paint: {
-          'text-color': ['case', ['get', 'active'], '#0C2D3A', '#2C5263'],
-          'text-halo-color': 'rgba(255, 255, 255, 0.95)',
-          'text-halo-width': 2,
-        },
+        filter: ['==', ['get', 'key'], ''],
+        layout: { 'text-field': ['to-string', ['get', 'pin']], 'text-font': ['Noto Sans Bold'], 'text-size': 13, 'text-allow-overlap': true, 'text-ignore-placement': false, 'text-padding': 10 },
+        paint: { 'text-color': INK },
       })
       map.addLayer({
-        id: 'routes-day',
-        type: 'line',
-        source: 'routes',
-        filter: ['==', ['get', 'n'], -1],
-        paint: { 'line-color': '#0C2D3A', 'line-width': 3, 'line-dasharray': [1.5, 1.5] },
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        id: 'stop-now-label',
+        type: 'symbol',
+        source: 'stops',
+        filter: ['==', ['get', 'key'], ''],
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['Noto Sans Bold'],
+          'text-size': 13,
+          'text-anchor': 'left',
+          'text-offset': [1.4, 0],
+          'text-max-width': 9,
+          'text-allow-overlap': true,
+        },
+        paint: { 'text-color': INK, 'text-halo-color': PAPER, 'text-halo-width': 2.2 },
       })
+      map.setGlobalStateProperty('current', -1)
+      for (const id of ['stops-day', 'stops-day-num', 'stop-now']) {
+        map.on('click', id, (e) => {
+          const f = e.features?.[0]
+          if (f?.properties?.point_count) {
+            map.easeTo({ center: (f.geometry as GeoJSON.Point).coordinates as LngLat, zoom: map.getZoom() + 2.5 })
+            return
+          }
+          const key = f?.properties?.key
+          if (typeof key === 'string') selectRef.current(key)
+        })
+        map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer'))
+        map.on('mouseleave', id, () => (map.getCanvas().style.cursor = ''))
+      }
       setReady(true)
     })
     map.on('error', (e) => {
-      // 타일 한두 장 실패는 무시하고, 스타일 자체를 못 받으면 안내를 띄운다.
+      if (import.meta.env.DEV) console.warn('[map]', e.error?.message)
       if (!map.isStyleLoaded() && /style/i.test(String(e.error?.message ?? ''))) setFailed(true)
     })
-    // 출처 글이 지도를 가리지 않게 ⓘ 단추로 접어 둔다(누르면 펼쳐짐). MapLibre 가 첫 로딩 뒤 다시 펼치므로 그때도 접는다.
+    if (import.meta.env.DEV) (window as unknown as { __map?: MapLibre }).__map = map
     const collapseAttribution = () => containerRef.current?.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
     map.once('load', collapseAttribution)
     map.once('idle', collapseAttribution)
@@ -188,71 +305,120 @@ export function TripMap({ current, book, showAttendance }: { current: DeckSlide;
     ro.observe(containerRef.current)
     return () => {
       ro.disconnect()
+      if (animRef.current) cancelAnimationFrame(animRef.current)
       map.remove()
       mapRef.current = null
     }
-  }, [lines])
+  }, [data])
 
-  // 카메라가 슬라이드 흐름을 따라간다.
-  // - 공통 안내: 여행 전체 경로
-  // - 그날 첫 슬라이드: 그날 동선 전체
-  // - 그 뒤: "이전 장소 → 지금 장소 → 다음 장소"가 들어오게 (같은 도시 안의 장소가 뭉치지 않게 확대)
-  // - 한국(인천) 장소: 그 장소로
+  // 장이 바뀌면: 강조·경로·카메라
   useEffect(() => {
     const map = mapRef.current
     if (!map || !ready) return
-    map.setFilter('routes-day', ['==', ['get', 'n'], dayN])
-    const narrow = (containerRef.current?.clientWidth ?? 800) < 520
-    // 핀 아래 출석 점과 오른쪽 라벨이 잘리지 않게 아래·오른쪽 여백을 조금 더 준다.
-    const padding = narrow ? { top: 40, bottom: 56, left: 36, right: 90 } : { top: 72, bottom: 90, left: 64, right: 150 }
-    const inUS = (c: [number, number]) => c[0] < 0
+    const dayN = page.day.n
+    const isFlight = page.type === 'slide' && page.slide.kind === 'flight' && page.day.n <= 9
+    const set = (id: string, filter: unknown) => map.getLayer(id) && map.setFilter(id, filter as never)
 
-    if (current.place && !inUS(current.place.coords)) {
-      map.flyTo({ center: current.place.coords, zoom: 12, duration: 1200 })
+    map.setGlobalStateProperty('current', page.index)
+    set('legs-day', ['all', ['==', ['get', 'day'], dayN], ['!=', ['get', 'mode'], 'walk']])
+    set('legs-day-walk', ['all', ['==', ['get', 'day'], dayN], ['==', ['get', 'mode'], 'walk']])
+    // 그날 장소(1~9일차에만)
+    const daySrc = map.getSource('stops-day') as GeoJSONSource | undefined
+    // 비행 장(지구본)에서는 그날 핀을 감춰 호만 보이게 한다
+    // 지금 장소는 따로 크게 그리므로 묶음에서 뺀다(같은 번호가 두 번 보이지 않게)
+    const nowStopKey = page.type === 'slide' && page.slide.place ? stopKeyFor(page) : ''
+    daySrc?.setData({
+      type: 'FeatureCollection',
+      features: dayN >= 1 && dayN <= 9 && !isFlight ? data.stops.filter((f) => f.properties?.day === dayN && f.properties?.key !== nowStopKey) : [],
+    })
+    // 출발 전·다녀와서: 전체 동선을 또렷하게, 숙소 3곳 표시
+    const guide = dayN === 0 || dayN === 10
+    map.setPaintProperty('legs-all', 'line-opacity', guide ? 0.55 : 0.14)
+    map.setPaintProperty('legs-all', 'line-width', guide ? 2.2 : 1.5)
+    for (const id of ['hotels', 'hotel-labels']) map.setLayoutProperty(id, 'visibility', guide ? 'visible' : 'none')
+    for (const id of ['stop-now-halo', 'stop-now', 'stop-now-num', 'stop-now-label']) set(id, ['==', ['get', 'key'], nowStopKey])
+
+    // 비행: 지구본 + 호
+    const flightVis = isFlight ? 'visible' : 'none'
+    // 귀국편은 색이 JFK 쪽에서 시작하도록 뒤집는다
+    const homeward = isFlight && page.day.n >= 7
+    map.setPaintProperty(
+      'flight',
+      'line-gradient',
+      homeward
+        ? ['interpolate', ['linear'], ['line-progress'], 0, ACCENT, 0.28, '#c9477f', 0.6, '#7a42b8', 1, '#1e5fce']
+        : ['interpolate', ['linear'], ['line-progress'], 0, '#1e5fce', 0.4, '#7a42b8', 0.72, '#c9477f', 1, ACCENT],
+    )
+    // 지구본에서는 공항 이름표가 있으니 지금 장소 이름표를 감춘다
+    map.setLayoutProperty('stop-now-label', 'visibility', isFlight ? 'none' : 'visible')
+    for (const id of ['flight', 'airports', 'airport-labels']) map.setLayoutProperty(id, 'visibility', flightVis)
+    map.setProjection({ type: isFlight ? 'globe' : 'mercator' })
+
+    // 지금 장으로 오는 길을 그리듯 보여 준다
+    const legSrc = map.getSource('leg-now') as GeoJSONSource | undefined
+    const line = page.type === 'slide' ? legLine(page) : null
+    legSrc?.setData(line && line.length > 1 ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line } } : { type: 'FeatureCollection', features: [] })
+    if (animRef.current) cancelAnimationFrame(animRef.current)
+    const drawTo = (t: number) =>
+      map.setPaintProperty('leg-now', 'line-gradient', ['step', ['line-progress'], ACCENT, Math.max(0.0001, Math.min(0.9999, t)), 'rgba(237,90,20,0)'])
+    if (line && !reduceMotion()) {
+      const t0 = performance.now()
+      const step = (ts: number) => {
+        const k = Math.min(1, (ts - t0) / 700)
+        drawTo(1 - Math.pow(1 - k, 3))
+        if (k < 1) animRef.current = requestAnimationFrame(step)
+      }
+      drawTo(0)
+      animRef.current = requestAnimationFrame(step)
+    } else drawTo(1)
+
+    // 카메라
+    const duration = reduceMotion() ? 0 : 900
+    if (isFlight) {
+      // 인천에서 알래스카 위를 지나 JFK 까지 호 전체가 보이게 지구본을 돌린다
+      const wide = (containerRef.current?.clientWidth ?? 390) > 700
+      map.easeTo({ center: [-178, 56], zoom: wide ? 1.55 : 0.55, duration: reduceMotion() ? 0 : 1400 })
       return
     }
-    const daySlides = current.day.slides
-    const dayCoords = daySlides.flatMap((s) => (s.place && inUS(s.place.coords) ? [s.place.coords] : []))
-    let coords: [number, number][]
-    if (dayN === 0) coords = lines.flatMap((l) => l.coords)
-    else if (current.order === 1 || !current.place) coords = dayCoords
-    else {
-      const i = current.order - 1
-      const prev = daySlides.slice(0, i).reverse().find((s) => s.place && inUS(s.place.coords))
-      const next = daySlides.slice(i + 1).find((s) => s.place && inUS(s.place.coords))
-      coords = [prev?.place?.coords, current.place.coords, next?.place?.coords].filter((c): c is [number, number] => !!c)
+    const { points, zoomIn } = framePoints(page)
+    const box = bbox(points)
+    if (!box) return
+    const el = containerRef.current
+    const w = el?.clientWidth ?? 390
+    const h = el?.clientHeight ?? 280
+    // 지금 장소의 이름표는 핀 오른쪽에 붙고, 오른쪽 위에는 지도 크게 단추가 있다. 그만큼 비워 두고 맞춘다.
+    const hasLabel = page.type === 'slide' && !!page.slide.place
+    const base = Math.max(24, Math.min(56, Math.round(Math.min(w, h) * 0.1)))
+    const padding = {
+      top: base + (w < 960 ? 34 : 0),
+      bottom: base,
+      left: base,
+      right: base + (hasLabel ? Math.min(150, Math.round(w * 0.34)) : w < 960 ? 34 : 0),
     }
-    const bounds = boundsOf(coords)
-    if (bounds) map.fitBounds(bounds, { padding, maxZoom: 15, duration: 1200 })
-    else map.flyTo({ ...US_EAST_VIEW, duration: 1200 })
-  }, [current.id, dayN, ready, lines]) // 슬라이드가 바뀔 때마다 카메라를 다시 맞춘다
-
-  // 그날 핀 다시 찍기 (출석 상태·현재 슬라이드가 바뀌어도 새로 그린다)
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !ready) return
-    for (const m of markersRef.current) m.remove()
-    const pins = deck.filter((s) => s.day.n === dayN && s.place)
-    map.getSource<GeoJSONSource>('stops')?.setData({
-      type: 'FeatureCollection',
-      features: pins.map((slide) => ({
-        type: 'Feature',
-        properties: { label: `${slide.time ? slide.time.start + ' ' : ''}${slide.title}`, active: slide.id === current.id },
-        geometry: { type: 'Point', coordinates: slide.place!.coords },
-      })),
-    })
-    markersRef.current = pins.map((slide) => {
-      const el = pinElement(slide, book, showAttendance)
-      if (slide.id === current.id) el.dataset.active = 'true'
-      return new Marker({ element: el, anchor: 'center' }).setLngLat(slide.place!.coords).addTo(map)
-    })
-  }, [dayN, ready, current.id, current.place, book, showAttendance])
+    if (zoomIn) {
+      // 핀을 가운데보다 왼쪽 아래에 두어 이름표와 단추가 겹치지 않게
+      map.easeTo({ center: points[0], zoom: 15, offset: [hasLabel ? -Math.round(Math.min(150, w * 0.34) / 2) : 0, 14], duration })
+    } else {
+      map.fitBounds(box as LngLatBoundsLike, { padding, maxZoom: 15, duration, linear: false })
+    }
+  }, [page, ready])
 
   return (
-    <div className="trip-map">
-      <div ref={containerRef} className="trip-map__canvas" />
-      {!ready && !failed && <p className="trip-map__loading">지도를 불러오는 중…</p>}
-      {failed && <p className="trip-map__error">지도를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</p>}
+    <div className="map">
+      <div ref={containerRef} className="map__canvas" role="region" aria-label="여행 동선 지도" />
+      {failed ? (
+        <div className="map__fail" role="status">
+          <p>지도를 불러오지 못했어요. 인터넷이 연결되면 다시 보여요. 일정 안내는 그대로 볼 수 있어요.</p>
+        </div>
+      ) : null}
     </div>
   )
 }
+
+/** 같은 좌표의 여러 장은 첫 장의 핀을 쓴다 */
+function stopKeyFor(page: SlidePage): string {
+  const c = page.slide.place!.coords.join(',')
+  const first = page.chapter.pages.find((p): p is SlidePage => p.type === 'slide' && !!p.slide.place && p.slide.place.coords.join(',') === c)
+  return first?.key ?? page.key
+}
+

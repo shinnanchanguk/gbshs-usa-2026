@@ -1,15 +1,60 @@
-import { useStored } from '../lib/storage'
-import { PinGate, PIN_HASH } from '../features/pin/PinGate'
-import { RoleGate } from '../features/role/RolePicker'
+import { useEffect, useState } from 'react'
+import { EntryGate } from '../features/gate/EntryGate'
+import { reopen, type Roster } from '../lib/roster'
+import { clearCodeFromUrl, parseHash } from '../lib/router'
+import { AppProvider } from './context'
 import { Shell } from './Shell'
-import { useProfile } from './state'
-import { deck } from '../content'
 
+/**
+ * 입장 코드 → 명단 열기 → 안내 화면.
+ * 이 기기에서 한 번 열었으면 저장한 열쇠로 바로 연다.
+ */
 export function App() {
-  const [unlocked, setUnlocked] = useStored<string | null>('unlock', null)
-  const [profile] = useProfile()
-  if (unlocked !== PIN_HASH) return <PinGate onUnlock={() => setUnlocked(PIN_HASH)} />
-  if (!profile) return <RoleGate />
-  if (!deck.length) return <p className="notice notice--warn">content/days 에 일정 파일이 없어요. README 의 "내용 고치기"를 참고하세요.</p>
-  return <Shell profile={profile} />
+  const [roster, setRoster] = useState<Roster | null>(null)
+  const [checked, setChecked] = useState(false)
+  // 링크(#/code/…)로 들어오면 코드를 메모리에만 옮기고 주소창에서 바로 지운다(맞든 틀리든)
+  const [linkCode, setLinkCode] = useState(() => {
+    const code = parseHash(window.location.hash).code
+    if (code) clearCodeFromUrl(null)
+    return code
+  })
+
+  // 입장 화면이 열린 탭에 코드 링크를 붙여 넣으면 주소의 # 만 바뀐다. 그때도 받아서 연다.
+  useEffect(() => {
+    const onHash = () => {
+      const code = parseHash(window.location.hash).code
+      if (!code) return
+      clearCodeFromUrl(null)
+      setLinkCode(code)
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+
+  useEffect(() => {
+    let alive = true
+    void reopen().then((r) => {
+      if (!alive) return
+      if (r && !linkCode) setRoster(r)
+      setChecked(true)
+    })
+    return () => {
+      alive = false
+    }
+  }, [linkCode])
+
+  if (!checked) return <div className="boot" aria-busy="true" />
+  if (!roster)
+    return (
+      <EntryGate
+        key={linkCode ?? 'typed'}
+        initialCode={linkCode}
+        onOpen={(r) => setRoster(r)}
+      />
+    )
+  return (
+    <AppProvider roster={roster}>
+      <Shell onLock={() => setRoster(null)} />
+    </AppProvider>
+  )
 }
