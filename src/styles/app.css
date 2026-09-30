@@ -581,6 +581,74 @@ img {
   left: 100%;
 }
 
+/* 지도·노선도 띠·내용을 묶는 상자. 컴퓨터에서는 없는 것처럼 두어 원래 칸 배치를 그대로 쓴다 */
+.app__scroll {
+  display: contents;
+}
+
+/*
+ * 휴대폰: 지도·띠·내용이 한 번에 스크롤된다. 내용을 올리면 지도가 함께 위로 밀려 나가 글 자리가 넓어지고,
+ * 맨 위로 내리면 다시 지도가 보인다. 노선도 띠는 위에 붙어 남는다. 장이 바뀌면 지도를 다시 보여 준다(Shell).
+ */
+@media (max-width: 959px) {
+  .app {
+    grid-template-rows: calc(var(--topbar-h) + var(--safe-top)) minmax(0, 1fr) calc(var(--bottombar-h) + var(--safe-bottom));
+    grid-template-areas: 'top' 'main' 'bottom';
+  }
+
+  .app__scroll {
+    grid-area: main;
+    display: block;
+    position: relative;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .app__map {
+    height: var(--map-h);
+  }
+
+  .strip {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    height: var(--strip-h);
+  }
+
+  .app__content {
+    overflow: visible;
+  }
+
+  .pager {
+    height: auto;
+    min-height: calc(100dvh - var(--topbar-h) - var(--safe-top) - var(--bottombar-h) - var(--safe-bottom) - var(--strip-h));
+    overflow: clip;
+  }
+
+  .pager__track {
+    position: relative;
+    inset: auto;
+  }
+
+  .pager__slot {
+    bottom: auto;
+    overflow: visible;
+  }
+
+  .pager__slot[data-slot='0'] {
+    position: relative;
+  }
+
+  /* 넘기는 동안 옆 장은 윗부분이 띠 바로 아래에 오게 내려 둔다 */
+  .pager__slot:not([data-slot='0']) {
+    transform: translateY(var(--peer-y, 0px));
+  }
+}
+
 /* ── 아래 띠 ───────────────────────────────────────────────────────────── */
 
 .bottombar {

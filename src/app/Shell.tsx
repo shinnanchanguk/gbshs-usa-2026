@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { rich } from '../components/Rich'
 import { pageAt, pageByKey, pages, trip, type Page } from '../content'
 import { Icon } from '../components/Icon'
@@ -19,6 +19,8 @@ export function Shell({ onLock }: { onLock: () => void }) {
   const [lastPage, setLastPage] = useLastPage()
   const [mapTall, setMapTall] = useMapTall()
   const [sheet, setSheet] = useState<'schedule' | 'menu' | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<HTMLElement>(null)
 
   const nowInfo = useMemo(() => pageAt(at), [at])
   const current: Page = (loc.pageKey && pageByKey.get(loc.pageKey)) || pages[0]
@@ -34,6 +36,19 @@ export function Shell({ onLock }: { onLock: () => void }) {
   useEffect(() => {
     setLastPage(current.key)
   }, [current.key, setLastPage])
+
+  // 휴대폰에서는 지도·노선도 띠·내용이 한 번에 스크롤된다(띠는 위에 붙어 남는다).
+  // 장이 바뀌면 새 장의 윗부분을 방금 보던 자리에 두고, 지도를 부드럽게 다시 내려 보여 준다.
+  useLayoutEffect(() => {
+    const box = scrollRef.current
+    if (!box || !window.matchMedia('(max-width: 959px)').matches || box.scrollTop <= 0) return
+    box.scrollTop = Math.min(box.scrollTop, mapRef.current?.offsetHeight ?? 0)
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    box.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
+  }, [current.index])
+
+  /** 넘기는 동안 옆 장의 윗부분을 노선도 띠 바로 아래에 맞추는 기준선 */
+  const ceiling = () => scrollRef.current?.querySelector('.strip')?.getBoundingClientRect().bottom ?? 0
 
   // 처음 들어오면 누구인지 고르게 한다
   useEffect(() => {
@@ -85,18 +100,20 @@ export function Shell({ onLock }: { onLock: () => void }) {
         </div>
       </header>
 
-      <section className="app__map" aria-label="지도">
-        <TripMap page={current} onSelect={(key) => goTo(key)} />
-        <button type="button" className="map-toggle" onClick={() => setMapTall(!mapTall)} aria-label={mapTall ? '지도 작게' : '지도 크게'}>
-          <Icon name={mapTall ? 'collapse' : 'expand'} size="1.1rem" />
-        </button>
-      </section>
+      <div className="app__scroll" ref={scrollRef}>
+        <section className="app__map" aria-label="지도" ref={mapRef}>
+          <TripMap page={current} onSelect={(key) => goTo(key)} />
+          <button type="button" className="map-toggle" onClick={() => setMapTall(!mapTall)} aria-label={mapTall ? '지도 작게' : '지도 크게'}>
+            <Icon name={mapTall ? 'collapse' : 'expand'} size="1.1rem" />
+          </button>
+        </section>
 
-      <DayStrip page={current} nowKey={nowInfo.page?.key ?? null} onSelect={(key) => goTo(key, { replace: true })} />
+        <DayStrip page={current} nowKey={nowInfo.page?.key ?? null} onSelect={(key) => goTo(key, { replace: true })} />
 
-      <main className="app__content">
-        <Pager index={current.index} count={pages.length} onChange={go} render={(i) => <PageView page={pages[i]} />} />
-      </main>
+        <main className="app__content">
+          <Pager index={current.index} count={pages.length} onChange={go} ceiling={ceiling} render={(i) => <PageView page={pages[i]} />} />
+        </main>
+      </div>
 
       <nav className="bottombar" aria-label="장 넘기기">
         <button type="button" className="bottombar__prev" onClick={() => go(current.index - 1)} disabled={!prev} aria-label={prev ? `이전: ${pageTitle(prev)}` : '처음 장'}>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 /**
  * 한 장씩 넘기기. 옆으로 밀거나(휴대폰) ←/→ 키(컴퓨터)로 앞뒤 장으로 간다.
@@ -7,11 +7,25 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
  * - 처음 10px 에서 옆 방향이 더 크면 넘기기, 아래위가 더 크면 그 장의 스크롤로 넘긴다.
  * - 글 입력칸·출석판·좌석표처럼 [data-noswipe] 안에서 시작한 손짓은 넘기기로 쓰지 않는다.
  * - 너비의 22% 넘게 밀었거나 빠르게 튕기면 넘어가고, 아니면 제자리로 돌아온다.
+ * - 휴대폰에서는 바깥 상자가 스크롤되므로, 넘기기 시작할 때 옆 장의 윗부분을 ceiling(띠 아래 선)에 맞춘다.
  */
-export function Pager({ index, count, onChange, render }: { index: number; count: number; onChange: (next: number) => void; render: (i: number) => ReactNode }) {
+export function Pager({
+  index,
+  count,
+  onChange,
+  render,
+  ceiling,
+}: {
+  index: number
+  count: number
+  onChange: (next: number) => void
+  render: (i: number) => ReactNode
+  ceiling?: () => number
+}) {
   const trackRef = useRef<HTMLDivElement>(null)
   const [dx, setDx] = useState(0)
   const [animating, setAnimating] = useState(false)
+  const [peerY, setPeerY] = useState(0)
   const drag = useRef<{ x: number; y: number; t: number; axis: 'x' | 'y' | null; id: number } | null>(null)
   const pending = useRef<number | null>(null)
   /** 옆으로 밀다 손을 뗀 직후의 클릭(사진·단추 위에서 시작한 경우)은 누른 것으로 치지 않는다 */
@@ -21,6 +35,17 @@ export function Pager({ index, count, onChange, render }: { index: number; count
   useEffect(() => {
     trackRef.current?.querySelector<HTMLElement>('[data-slot="0"]')?.scrollTo({ top: 0 })
   }, [index])
+
+  // 새 장이 가운데로 오면 옆 장 맞춤을 푼다
+  useLayoutEffect(() => {
+    setPeerY(0)
+  }, [index])
+
+  const alignPeers = () => {
+    const track = trackRef.current
+    if (!track || !ceiling) return
+    setPeerY(Math.max(0, Math.round(ceiling() - track.getBoundingClientRect().top)))
+  }
 
   const width = () => trackRef.current?.clientWidth ?? window.innerWidth
   const reduce = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
@@ -35,6 +60,7 @@ export function Pager({ index, count, onChange, render }: { index: number; count
       return
     }
     pending.current = target
+    if (!drag.current) alignPeers()
     setAnimating(true)
     setDx(-dir * width())
   }
@@ -80,7 +106,10 @@ export function Pager({ index, count, onChange, render }: { index: number; count
         if (!d.axis) {
           if (Math.abs(mx) < 10 && Math.abs(my) < 10) return
           d.axis = Math.abs(mx) > Math.abs(my) * 1.2 ? 'x' : 'y'
-          if (d.axis === 'x') (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+          if (d.axis === 'x') {
+            ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+            alignPeers()
+          }
         }
         if (d.axis !== 'x') return
         // 처음·마지막 장에서는 고무줄처럼 덜 끌린다
@@ -114,7 +143,7 @@ export function Pager({ index, count, onChange, render }: { index: number; count
         settle(0)
       }}
     >
-      <div className="pager__track" data-animating={animating || undefined} style={{ transform: `translate3d(${dx}px,0,0)` }} onTransitionEnd={onTransitionEnd}>
+      <div className="pager__track" data-animating={animating || undefined} style={{ transform: `translate3d(${dx}px,0,0)`, ['--peer-y' as string]: `${peerY}px` }} onTransitionEnd={onTransitionEnd}>
         {[-1, 0, 1].map((off) => {
           const i = index + off
           if (i < 0 || i >= count) return <div key={off} className="pager__slot" data-slot={off} aria-hidden="true" />
