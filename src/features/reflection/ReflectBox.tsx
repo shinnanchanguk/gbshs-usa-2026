@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { trip, type SlidePage, type ThemeId } from '../../content'
 import { Icon } from '../../components/Icon'
-import { useReflections } from '../../lib/repo'
+import { REFLECTION_MAX, useMyReflections } from '../../lib/repo'
 import { useApp } from '../../app/context'
 import { clock } from '../../lib/time'
 
 /** 학생 느낀 점. 쓰는 대로 이 기기에 저장되고, 활동 주제를 골라 두면 발표회 보고서 초안에 주제별로 모인다. */
 export function ReflectBox({ page }: { page: SlidePage }) {
-  const [book, setBook] = useReflections()
   const { me } = useApp()
-  const saved = book[page.key]
+  const [mine, save] = useMyReflections(me?.id)
+  const saved = mine[page.key]
   const [text, setText] = useState(saved?.text ?? '')
   const [themes, setThemes] = useState<ThemeId[]>(saved?.themes?.length ? saved.themes : page.slide.themes)
   const [savedAt, setSavedAt] = useState<string | null>(saved?.updatedAt ?? null)
@@ -18,20 +18,18 @@ export function ReflectBox({ page }: { page: SlidePage }) {
   const latest = useRef({ text, themes })
   latest.current = { text, themes }
 
-  // 다른 탭에서 바뀌면 따라간다(입력 중이 아닐 때)
+  // 다른 탭에서 바뀌거나 다른 학생으로 바뀌면 따라간다(입력 중이 아닐 때)
   useEffect(() => {
-    if (timer.current == null) setText(book[page.key]?.text ?? '')
-  }, [book, page.key])
+    if (timer.current != null) return
+    const r = mine[page.key]
+    setText(r?.text ?? '')
+    setThemes(r?.themes?.length ? r.themes : page.slide.themes)
+    setSavedAt(r?.updatedAt || null)
+  }, [mine, page.key, page.slide.themes])
 
   const commit = (nextText: string, nextThemes: ThemeId[]) => {
-    const updatedAt = new Date().toISOString()
-    setBook((b) => {
-      const copy = { ...b }
-      if (!nextText.trim()) delete copy[page.key]
-      else copy[page.key] = { text: nextText, themes: nextThemes, updatedAt, by: me?.id }
-      return copy
-    })
-    setSavedAt(nextText.trim() ? updatedAt : null)
+    save(page.key, nextText.trim() ? { text: nextText, themes: nextThemes } : null)
+    setSavedAt(nextText.trim() ? new Date().toISOString() : null)
   }
 
   const flush = () => {
@@ -52,6 +50,7 @@ export function ReflectBox({ page }: { page: SlidePage }) {
         className="reflect__input"
         rows={4}
         value={text}
+        maxLength={REFLECTION_MAX}
         placeholder="보고, 듣고, 생각한 것을 짧게라도 적어 두세요."
         onChange={(e) => {
           const v = e.target.value

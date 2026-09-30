@@ -109,6 +109,6 @@ npm run routes     # 장소 좌표를 바꿨으면 길 다시 받기
 
 ## 사용한 것과 라이선스
 
-- React, Vite, TypeScript, MapLibre GL JS, 지도 타일 [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles © OpenStreetMap contributors), 경로 계산 [OSRM](https://project-osrm.org) (© OpenStreetMap contributors)
+- React, Vite, TypeScript, MapLibre GL JS, [SheetJS](https://sheetjs.com)(xlsx 0.20.3, Apache-2.0, 느낀 점 엑셀), 지도 타일 [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles © OpenStreetMap contributors), 경로 계산 [OSRM](https://project-osrm.org) (© OpenStreetMap contributors)
 - 디자인: 도름슬라이드 크로마 테마
 - 글꼴: Space Grotesk, JetBrains Mono, Wanted Sans(한글 2,350자 부분 글꼴) · SIL Open Font License 1.1 (`LICENSES/`)

@@ -1,7 +1,7 @@
 import type { Notice } from '../../lib/repo'
 
 /** 공지 한 건. 학생 팝업과 선생님 팝업 관리가 같은 모양을 쓴다. */
-export function NoticeCard({ notice, compact = false, titleId }: { notice: Notice; compact?: boolean; titleId?: string }) {
+export function NoticeCard({ notice, compact = false, audience = compact, titleId }: { notice: Notice; compact?: boolean; audience?: boolean; titleId?: string }) {
   const edited = notice.updatedAt !== notice.createdAt
   return (
     <article className="notice" data-compact={compact || undefined}>
@@ -10,7 +10,7 @@ export function NoticeCard({ notice, compact = false, titleId }: { notice: Notic
       </h3>
       <p className="notice__meta">
         <span className="notice__author">{notice.author} 선생님</span>
-        {compact ? <span className="notice__to">{notice.alsoParents ? '학생·보호자' : '학생'}</span> : null}
+        {audience ? <span className="notice__to">{notice.alsoParents ? '학생·보호자' : '학생'}</span> : null}
         <span className="mono">{stamp(notice.createdAt)}</span>
         {edited ? (
           <span className="notice__edited">

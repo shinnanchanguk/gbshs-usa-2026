@@ -119,7 +119,7 @@ export function NoticePopup({ items, onHide, onClose, preview = false }: { items
         </span>
 
         <div className="notice-pop__body">
-          <NoticeCard notice={current} titleId={titleId} />
+          <NoticeCard notice={current} titleId={titleId} audience={preview} />
         </div>
 
         {many && items.length <= DOTS_MAX ? (

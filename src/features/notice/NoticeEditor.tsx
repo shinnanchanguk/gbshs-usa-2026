@@ -95,11 +95,11 @@ export function NoticeEditor({
         <p className="notice-form__author">
           올리는 사람 <strong>{author} 선생님</strong>
         </p>
-        {initial ? <p className="fineprint">고친 공지는 '다시 보지 않기'를 누른 학생에게도 한 번 더 떠요.</p> : null}
+        {initial ? <p className="fineprint">제목이나 내용을 고치면 '다시 보지 않기'를 누른 사람에게도 한 번 더 떠요.</p> : null}
         <button type="submit" className="btn btn--primary btn--block" disabled={!ready}>
           {initial ? '고친 내용 올리기' : '올리기'}
         </button>
-        <p className="fineprint">지금은 이 휴대폰에서만 보여요. 나중에 로그인이 생기면 학생들 휴대폰에도 떠요.</p>
+        <p className="fineprint">지금은 이 휴대폰에서만 보여요. 나중에 로그인이 생기면 학생(체크하면 보호자) 휴대폰에도 떠요.</p>
       </form>
     </Sheet>
   )

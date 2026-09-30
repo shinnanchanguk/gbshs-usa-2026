@@ -3,7 +3,7 @@ import { rich } from '../../components/Rich'
 import { pageByKey, trip, type SlidePage } from '../../content'
 import { Icon } from '../../components/Icon'
 import { useApp } from '../../app/context'
-import { useReflections } from '../../lib/repo'
+import { useMyReflections } from '../../lib/repo'
 import { copyText } from '../../lib/clipboard'
 import { goTo } from '../../lib/router'
 import { dateLabel } from '../../lib/time'
@@ -13,8 +13,8 @@ import { dateLabel } from '../../lib/time'
  * 복사하거나 공유(카톡 등)로 담임 선생님께 보낼 수 있다.
  */
 export function ReportWidget() {
-  const [book] = useReflections()
   const { me, profile } = useApp()
+  const [book] = useMyReflections(me?.id)
   const [done, setDone] = useState<string | null>(null)
 
   const entries = Object.entries(book)

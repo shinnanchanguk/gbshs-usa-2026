@@ -38,7 +38,7 @@ export function NoticeManage({
         </div>
 
         {notices.length === 0 ? (
-          <p className="notice-manage__empty">떠 있는 공지가 없어요. 「공지하기」로 올리면 학생 화면에 팝업으로 떠요.</p>
+          <p className="notice-manage__empty">떠 있는 공지가 없어요. 「공지하기」로 올리면 학생 화면에, 체크하면 보호자 화면에도 팝업으로 떠요.</p>
         ) : (
           <>
             <h3 className="menu__h" ref={headRef} tabIndex={-1}>
@@ -81,7 +81,7 @@ export function NoticeManage({
             </ul>
           </>
         )}
-        <p className="fineprint">지금은 이 휴대폰에서만 보여요. 나중에 로그인이 생기면 학생들 휴대폰에도 떠요.</p>
+        <p className="fineprint">지금은 이 휴대폰에서만 보여요. 나중에 로그인이 생기면 학생(체크하면 보호자) 휴대폰에도 떠요.</p>
       </div>
     </Sheet>
   )

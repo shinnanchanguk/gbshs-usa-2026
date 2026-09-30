@@ -106,7 +106,7 @@ export function MenuSheet({
 
         {role === 'teacher' ? (
           <section className="whopick">
-            <h3 className="whopick__title">학생 공지</h3>
+            <h3 className="whopick__title">공지</h3>
             <div className="notice-entry">
               <button type="button" className="quick__btn" onClick={() => onNotices('compose')} disabled={!teacher}>
                 <Icon name="megaphone" />
