@@ -33,7 +33,8 @@
 
 - 코드·원본은 레포 밖 `private/`(.gitignore)에만 있습니다: `private/access-code.txt`, `private/roster.json`
 - 명단이 바뀌면 `private/roster.json`을 고친 뒤 `npm run roster:seal`로 암호문을 다시 만듭니다.
-- 코드를 바꾸려면 `private/access-code.txt`를 지우고 `npm run roster:seal`을 실행합니다(새 코드가 생기고, 이미 들어온 기기는 다시 입력).
+- 입장 코드는 숫자 6자리입니다. 바꾸려면 `private/access-code.txt`에 새 숫자 6자리를 적고 `npm run roster:seal`을 실행합니다(파일을 지우면 새 코드가 생깁니다). 이미 들어온 기기는 다시 입력합니다.
+- 숫자 6자리는 로그인이 붙기 전까지 쓰는 임시 잠금입니다. 공개된 암호문에 100만 가지 숫자를 다 넣어 보면 풀리므로, 로그인·서버 명단으로 옮기면 암호문과 이 코드를 없앱니다.
 - 카톡으로 `https://shinnanchanguk.github.io/gbshs-usa-2026/#/code/<코드>` 링크를 보내면 누르기만 해도 열립니다(코드는 `#` 뒤라 서버로 가지 않음).
 
 ## 폴더 구조

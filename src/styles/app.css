@@ -3353,9 +3353,10 @@ button.seat[data-present='true'] .seat__no {
   font-family: var(--font-mono);
   font-size: 1.625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.2em;
+  /* 마지막 글자 뒤에도 붙는 자간만큼 밀어 가운데를 맞춘다 */
+  text-indent: 0.2em;
   text-align: center;
-  text-transform: uppercase;
 }
 
 .gate__input::placeholder {
