@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { trip, type SlidePage, type ThemeId } from '../../content'
 import { Icon } from '../../components/Icon'
 import { useReflections } from '../../lib/repo'
+import { useApp } from '../../app/context'
 import { clock } from '../../lib/time'
 
 /** 학생 느낀 점. 쓰는 대로 이 기기에 저장되고, 활동 주제를 골라 두면 발표회 보고서 초안에 주제별로 모인다. */
 export function ReflectBox({ page }: { page: SlidePage }) {
   const [book, setBook] = useReflections()
+  const { me } = useApp()
   const saved = book[page.key]
   const [text, setText] = useState(saved?.text ?? '')
   const [themes, setThemes] = useState<ThemeId[]>(saved?.themes?.length ? saved.themes : page.slide.themes)
@@ -26,7 +28,7 @@ export function ReflectBox({ page }: { page: SlidePage }) {
     setBook((b) => {
       const copy = { ...b }
       if (!nextText.trim()) delete copy[page.key]
-      else copy[page.key] = { text: nextText, themes: nextThemes, updatedAt }
+      else copy[page.key] = { text: nextText, themes: nextThemes, updatedAt, by: me?.id }
       return copy
     })
     setSavedAt(nextText.trim() ? updatedAt : null)

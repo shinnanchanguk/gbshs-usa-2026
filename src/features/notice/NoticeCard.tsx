@@ -10,6 +10,7 @@ export function NoticeCard({ notice, compact = false, titleId }: { notice: Notic
       </h3>
       <p className="notice__meta">
         <span className="notice__author">{notice.author} 선생님</span>
+        {compact ? <span className="notice__to">{notice.alsoParents ? '학생·보호자' : '학생'}</span> : null}
         <span className="mono">{stamp(notice.createdAt)}</span>
         {edited ? (
           <span className="notice__edited">

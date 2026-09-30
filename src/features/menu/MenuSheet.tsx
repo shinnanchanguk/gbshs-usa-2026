@@ -5,6 +5,7 @@ import { Sheet } from '../../components/Sheet'
 import { useApp } from '../../app/context'
 import { forget } from '../../lib/roster'
 import type { Role } from '../../lib/repo'
+import { ReflectionExport } from '../reflection/ReflectionExport'
 
 const ROLES: { id: Role; label: string; sub: string; icon: IconName }[] = [
   { id: 'student', label: '학생', sub: '내 자리·방, 장마다 느낀 점', icon: 'user' },
@@ -120,6 +121,8 @@ export function MenuSheet({
             {teacher ? null : <p className="fineprint">위에서 선생님 이름을 먼저 골라 주세요. 공지에 올린 사람으로 보여요.</p>}
           </section>
         ) : null}
+
+        {role === 'teacher' ? <ReflectionExport /> : null}
 
         {profile ? (
           <>

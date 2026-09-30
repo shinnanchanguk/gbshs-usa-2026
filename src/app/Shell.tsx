@@ -125,12 +125,14 @@ export function Shell({ onLock }: { onLock: () => void }) {
 
   // 공지: 새것이 앞. 학생에게는 '다시 보지 않기'·이번에 닫은 것을 뺀 나머지가 팝업으로 뜬다.
   const sortedNotices = useMemo(() => [...notices].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [notices])
-  const pendingNotices = profile?.role === 'student' ? sortedNotices.filter((n) => !hidden.includes(noticeVersion(n)) && !closedNow.includes(noticeVersion(n))) : []
+  // 학생에게는 모든 공지, 보호자에게는 '보호자 화면에도 띄우기'를 켠 공지만
+  const forMe = (n: Notice) => profile?.role === 'student' || (profile?.role === 'parent' && n.alsoParents === true)
+  const pendingNotices = sortedNotices.filter((n) => forMe(n) && !hidden.includes(noticeVersion(n)) && !closedNow.includes(noticeVersion(n)))
   const author = teacher?.name ?? ''
 
-  const saveNotice = (title: string, body: string) => {
-    if (editing) updateNotice(editing.id, title, body, author)
-    else createNotice(title, body, author)
+  const saveNotice = (title: string, body: string, alsoParents: boolean) => {
+    if (editing) updateNotice(editing.id, title, body, author, alsoParents)
+    else createNotice(title, body, author, alsoParents)
     setEditing(null)
     setSheet('manage')
   }

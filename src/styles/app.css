@@ -2855,8 +2855,17 @@ button.seat[data-present='true'] .seat__no {
   gap: 6px;
 }
 
+/* '전체' 칸이 하나 더 있을 때(느낀 점 받기) 한 줄에 여섯 칸 */
+.classpick--all {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
 .classpick__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 40px;
+  padding: 0 4px;
   border-radius: 10px;
   border: 1px solid var(--line-2);
   background: var(--paper);
@@ -3080,6 +3089,27 @@ button.seat[data-present='true'] .seat__no {
   color: var(--ink);
 }
 
+.notice__to {
+  padding: 1px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+/* 선생님 메뉴: 느낀 점 엑셀 받기 */
+.export-btn__count {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.export-btn__error {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
 .notice[data-compact] .notice__title {
   padding-bottom: 8px;
   font-size: var(--fs-lg);
@@ -3264,6 +3294,36 @@ button.seat[data-present='true'] .seat__no {
 .notice-form__area {
   min-height: 170px;
   resize: vertical;
+}
+
+.notice-form__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: var(--s-2);
+  padding: 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--sheet);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notice-form__check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--ink);
+}
+
+.notice-form__check-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .notice-form__author {

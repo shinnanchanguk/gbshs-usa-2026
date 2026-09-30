@@ -24,11 +24,34 @@ export function useProfile() {
   return useStored<Profile | null>('profile', null)
 }
 
-export type Reflection = { text: string; themes: ThemeId[]; updatedAt: string }
+/** by: 쓴 학생의 학번(이 기기에서 누가 썼는지 알아야 선생님이 모아 받을 수 있다) */
+export type Reflection = { text: string; themes: ThemeId[]; updatedAt: string; by?: string }
 export type ReflectionBook = Record<string, Reflection>
 
 export function useReflections() {
   return useStored<ReflectionBook>('reflections', {})
+}
+
+/** 한 학생이 쓴 느낀 점 전부(장 key → 느낀 점) */
+export type StudentReflections = { studentId: string; book: ReflectionBook }
+
+/**
+ * 선생님 화면에서 모아 보는 학생들의 느낀 점.
+ * 지금은 DB가 없어 이 기기에 저장된 것만 모인다(학생이 이 휴대폰에서 쓴 것을 쓴 사람별로 나눔).
+ * DB를 붙이면 여기서 서버의 전체 학생 느낀 점을 읽는다. 읽기는 로그인한 선생님만 허용한다.
+ */
+export function useClassReflections(): StudentReflections[] {
+  const [book] = useReflections()
+  return useMemo(() => {
+    const byStudent = new Map<string, ReflectionBook>()
+    for (const [key, r] of Object.entries(book ?? {})) {
+      if (!r || typeof r.text !== 'string' || !r.text.trim() || typeof r.by !== 'string') continue
+      const own = byStudent.get(r.by) ?? {}
+      own[key] = r
+      byStudent.set(r.by, own)
+    }
+    return [...byStudent].map(([studentId, own]) => ({ studentId, book: own }))
+  }, [book])
 }
 
 /** 장마다 출석한 학생 학번 목록 */
@@ -62,6 +85,8 @@ export type Notice = {
   updatedAt: string
   /** 올린 사람과 다른 선생님이 고쳤으면 그 이름 */
   editedBy?: string
+  /** 보호자 화면에도 띄울지(없으면 학생에게만) */
+  alsoParents?: boolean
 }
 
 export const NOTICE_TITLE_MAX = 60
@@ -82,6 +107,7 @@ function parseNotice(v: unknown): Notice | null {
     createdAt,
     updatedAt,
     editedBy: typeof o.editedBy === 'string' ? o.editedBy : undefined,
+    alsoParents: o.alsoParents === true,
   }
 }
 
@@ -102,6 +128,7 @@ export function newNoticeId() {
  * - 올린 시각·고친 시각은 서버 시계로 적는다(고친 시각이 바뀌면 학생에게 다시 뜨기 때문).
  * - 제목 1~60자, 본문 1~1000자를 서버에서도 확인하고, 쓰기·지우기는 선생님 계정만 허용한다.
  * - 공지에는 선생님 실명이 들어가므로 읽기도 로그인한 여행 참가자만 허용한다(입장 코드는 로그인이 아니다).
+ * - 보호자 계정에는 alsoParents 가 켜진 공지만 내려 준다.
  */
 export function useNotices() {
   const [raw, setRaw] = useStored<unknown>('notices', [])
@@ -111,15 +138,17 @@ export function useNotices() {
   return useMemo(
     () => ({
       notices,
-      create(title: string, body: string, author: string) {
+      create(title: string, body: string, author: string, alsoParents: boolean) {
         const now = new Date().toISOString()
-        edit((list) => [{ id: newNoticeId(), title: title.slice(0, NOTICE_TITLE_MAX), body: body.slice(0, NOTICE_BODY_MAX), author, createdAt: now, updatedAt: now }, ...list])
+        edit((list) => [{ id: newNoticeId(), title: title.slice(0, NOTICE_TITLE_MAX), body: body.slice(0, NOTICE_BODY_MAX), author, createdAt: now, updatedAt: now, alsoParents }, ...list])
       },
-      update(id: string, title: string, body: string, editor: string) {
+      update(id: string, title: string, body: string, editor: string, alsoParents: boolean) {
         const now = new Date().toISOString()
         edit((list) =>
           list.map((n) =>
-            n.id === id ? { ...n, title: title.slice(0, NOTICE_TITLE_MAX), body: body.slice(0, NOTICE_BODY_MAX), updatedAt: now, editedBy: editor && editor !== n.author ? editor : undefined } : n,
+            n.id === id
+              ? { ...n, title: title.slice(0, NOTICE_TITLE_MAX), body: body.slice(0, NOTICE_BODY_MAX), updatedAt: now, editedBy: editor && editor !== n.author ? editor : undefined, alsoParents }
+              : n,
           ),
         )
       },
