@@ -12,7 +12,7 @@ import { NoticePopup } from '../features/notice/NoticePopup'
 import { NoticeEditor } from '../features/notice/NoticeEditor'
 import { NoticeManage } from '../features/notice/NoticeManage'
 import { goTo, useLocation } from '../lib/router'
-import { newNoticeId, noticeVersion, useHiddenNotices, useLastPage, useMapTall, useNotices, type Notice } from '../lib/repo'
+import { noticeVersion, useHiddenNotices, useLastPage, useMapTall, useNotices, type Notice } from '../lib/repo'
 import { daysUntil } from '../lib/time'
 import { useApp } from './context'
 
@@ -22,8 +22,8 @@ export function Shell({ onLock }: { onLock: () => void }) {
   const [lastPage, setLastPage] = useLastPage()
   const [mapTall, setMapTall] = useMapTall()
   const [sheet, setSheet] = useState<'schedule' | 'menu' | 'compose' | 'manage' | null>(null)
-  const [notices, setNotices] = useNotices()
-  const [hidden, setHidden] = useHiddenNotices()
+  const { notices, create: createNotice, update: updateNotice, remove: removeNotice } = useNotices()
+  const { hidden, hide } = useHiddenNotices()
   const [editing, setEditing] = useState<Notice | null>(null)
   const [previewing, setPreviewing] = useState(false)
   /** 이번에 사이트를 연 동안 '닫기'로 닫은 공지 판. 다음에 열면 다시 뜬다. */
@@ -86,21 +86,13 @@ export function Shell({ onLock }: { onLock: () => void }) {
   const author = teacher?.name ?? ''
 
   const saveNotice = (title: string, body: string) => {
-    const now = new Date().toISOString()
-    if (editing) {
-      setNotices((list) => list.map((n) => (n.id === editing.id ? { ...n, title, body, updatedAt: now, editedBy: author && author !== n.author ? author : undefined } : n)))
-    } else {
-      setNotices((list) => [{ id: newNoticeId(), title, body, author, createdAt: now, updatedAt: now }, ...list])
-    }
+    if (editing) updateNotice(editing.id, title, body, author)
+    else createNotice(title, body, author)
     setEditing(null)
     setSheet('manage')
   }
 
-  const hideNotice = (n: Notice) => {
-    // 지워진 공지의 기록은 함께 치워 저장이 쌓이지 않게 한다
-    const live = new Set(notices.map(noticeVersion))
-    setHidden((h) => [...h.filter((v) => live.has(v)), noticeVersion(n)])
-  }
+  const hideNotice = (n: Notice) => hide(n, notices)
 
   const prev = pages[current.index - 1]
   const next = pages[current.index + 1]
@@ -207,7 +199,7 @@ export function Shell({ onLock }: { onLock: () => void }) {
             setEditing(n)
             setSheet('compose')
           }}
-          onDelete={(n) => setNotices((list) => list.filter((x) => x.id !== n.id))}
+          onDelete={(n) => removeNotice(n.id)}
           onPreview={() => {
             setSheet(null)
             setPreviewing(true)

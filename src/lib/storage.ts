@@ -10,16 +10,19 @@ const PREFIX = 'usa2026:'
 const memory = new Map<string, string>()
 
 function readRaw(key: string): string | null {
+  // 저장이 가득 차서 메모리에 둔 값이 있으면 그것이 가장 최신이다
+  if (memory.has(key)) return memory.get(key)!
   try {
     return window.localStorage.getItem(PREFIX + key)
   } catch {
-    return memory.get(key) ?? null
+    return null
   }
 }
 
 function writeRaw(key: string, value: string) {
   try {
     window.localStorage.setItem(PREFIX + key, value)
+    memory.delete(key)
   } catch {
     memory.set(key, value)
   }
