@@ -28,8 +28,21 @@ export function Shell({ onLock }: { onLock: () => void }) {
   const [previewing, setPreviewing] = useState(false)
   /** 이번에 사이트를 연 동안 '닫기'로 닫은 공지 판. 다음에 열면 다시 뜬다. */
   const [closedNow, setClosedNow] = useState<string[]>([])
+
+  // 홈 화면에 둔 앱은 다시 켜도 새로 열리지 않는다. 10분 넘게 다른 앱에 가 있다 돌아오면 새로 연 것으로 보고 닫은 공지를 다시 띄운다.
+  useEffect(() => {
+    let hiddenAt = 0
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') hiddenAt = Date.now()
+      else if (hiddenAt && Date.now() - hiddenAt > 10 * 60 * 1000) setClosedNow([])
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [])
   const scrollRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<HTMLElement>(null)
+  /** 바로 앞 화면의 지도 칸 높이(안내 장은 0). 장이 바뀌며 지도가 생기거나 없어져도 글이 튀지 않게 쓴다. */
+  const lastMapH = useRef(0)
 
   const nowInfo = useMemo(() => pageAt(at), [at])
   const current: Page = (loc.pageKey && pageByKey.get(loc.pageKey)) || pages[0]
@@ -50,11 +63,41 @@ export function Shell({ onLock }: { onLock: () => void }) {
   // 장이 바뀌면 새 장의 윗부분을 방금 보던 자리에 두고, 지도를 부드럽게 다시 내려 보여 준다.
   useLayoutEffect(() => {
     const box = scrollRef.current
-    if (!box || !window.matchMedia('(max-width: 959px)').matches || box.scrollTop <= 0) return
-    box.scrollTop = Math.min(box.scrollTop, mapRef.current?.offsetHeight ?? 0)
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    box.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
+    if (!box || !window.matchMedia('(max-width: 959px)').matches) return
+    const mapH = mapRef.current?.offsetHeight ?? 0
+    const prevH = lastMapH.current
+    // 방금까지 띠 아래 보이던 높이에 새 장 윗부분을 둔다. 지도 칸 높이가 달라졌으면(안내 장과 지도 장 사이) 그만큼 더한다.
+    const keep = Math.max(0, Math.min(mapH, mapH - prevH + Math.min(box.scrollTop, prevH)))
+    if (keep <= 0 && box.scrollTop <= 0) return
+    box.scrollTop = keep
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      box.scrollTop = 0
+      return
+    }
+    // 브라우저의 부드러운 스크롤은 방금 옆으로 민 손짓의 남은 관성에 취소되곤 해서 직접 움직인다. 다시 손대면 멈춘다.
+    let frame = 0
+    let t0 = -1
+    const stop = () => cancelAnimationFrame(frame)
+    const step = (t: number) => {
+      if (t0 < 0) t0 = t
+      const p = Math.max(0, Math.min(1, (t - t0) / 320))
+      box.scrollTop = Math.round(keep * (1 - p) ** 3)
+      if (p < 1) frame = requestAnimationFrame(step)
+    }
+    frame = requestAnimationFrame(step)
+    box.addEventListener('touchstart', stop, { once: true, passive: true })
+    box.addEventListener('wheel', stop, { once: true, passive: true })
+    return () => {
+      stop()
+      box.removeEventListener('touchstart', stop)
+      box.removeEventListener('wheel', stop)
+    }
   }, [current.index])
+
+  // 위의 장 바꿈 처리 다음에 돈다: 이번 화면의 지도 칸 높이를 적어 둔다(크게 보기 전환도 반영)
+  useLayoutEffect(() => {
+    lastMapH.current = mapRef.current?.offsetHeight ?? 0
+  })
 
   /** 넘기는 동안 옆 장의 윗부분을 노선도 띠 바로 아래에 맞추는 기준선 */
   const ceiling = () => scrollRef.current?.querySelector('.strip')?.getBoundingClientRect().bottom ?? 0

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { Sheet } from '../../components/Sheet'
 import type { Notice } from '../../lib/repo'
@@ -21,16 +21,19 @@ export function NoticeManage({
   onClose: () => void
 }) {
   const [confirming, setConfirming] = useState<string | null>(null)
+  // 지운 뒤 키보드 초점이 갈 곳: 목록 제목(남은 공지가 없으면 공지하기 단추)
+  const headRef = useRef<HTMLHeadingElement>(null)
+  const composeRef = useRef<HTMLButtonElement>(null)
 
   return (
     <Sheet title="팝업 관리" onClose={onClose}>
       <div className="notice-manage" data-noswipe>
         <div className="notice-manage__top">
-          <button type="button" className="btn btn--primary" onClick={onCompose}>
+          <button type="button" className="btn btn--primary" onClick={onCompose} ref={composeRef}>
             <Icon name="megaphone" size="1.1rem" /> 공지하기
           </button>
           <button type="button" className="btn btn--ghost" onClick={onPreview} disabled={notices.length === 0}>
-            학생 화면으로 보기
+            미리 보기
           </button>
         </div>
 
@@ -38,7 +41,9 @@ export function NoticeManage({
           <p className="notice-manage__empty">떠 있는 공지가 없어요. 「공지하기」로 올리면 학생 화면에 팝업으로 떠요.</p>
         ) : (
           <>
-            <h3 className="menu__h">떠 있는 공지 {notices.length}건</h3>
+            <h3 className="menu__h" ref={headRef} tabIndex={-1}>
+              떠 있는 공지 {notices.length}건
+            </h3>
             <ul className="notice-manage__list">
               {notices.map((n) => (
                 <li key={n.id} className="notice-manage__item">
@@ -55,6 +60,7 @@ export function NoticeManage({
                         onClick={() => {
                           setConfirming(null)
                           onDelete(n)
+                          requestAnimationFrame(() => (headRef.current ?? composeRef.current)?.focus())
                         }}
                       >
                         지우기

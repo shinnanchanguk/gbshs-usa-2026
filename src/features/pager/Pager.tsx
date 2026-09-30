@@ -60,7 +60,8 @@ export function Pager({
       return
     }
     pending.current = target
-    if (!drag.current) alignPeers()
+    // 키보드로 넘길 때도 옆 장을 띠 아래에 맞춘다(손으로 밀 때는 밀기 시작할 때 맞춘 값과 같다)
+    alignPeers()
     setAnimating(true)
     setDx(-dir * width())
   }

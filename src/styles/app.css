@@ -3108,12 +3108,18 @@ button.seat[data-present='true'] .seat__no {
 .notice-pop__panel {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   width: min(440px, 100%);
   max-height: calc(100dvh - max(16px, var(--safe-top)) - max(16px, var(--safe-bottom)));
   border-radius: 22px;
   background: var(--paper);
   box-shadow: var(--shadow-2);
   animation: rise 260ms var(--ease-out);
+}
+
+/* 여러 건이면 높이를 고정해 넘길 때 화살표가 제자리에 있게 한다(글은 안에서 스크롤) */
+.notice-pop__panel[data-many] {
+  height: min(600px, calc(100dvh - max(16px, var(--safe-top)) - max(16px, var(--safe-bottom))));
 }
 
 .notice-pop__panel:focus {
@@ -3162,12 +3168,14 @@ button.seat[data-present='true'] .seat__no {
 
 .notice-pop__dots {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
   padding-top: var(--s-2);
 }
 
 .notice-pop__dots span {
+  flex: none;
   width: 6px;
   height: 6px;
   border-radius: var(--r-pill);
@@ -3224,6 +3232,7 @@ button.seat[data-present='true'] .seat__no {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  gap: var(--s-2);
   margin-top: var(--s-2);
   font-size: var(--fs-xs);
   font-weight: 800;

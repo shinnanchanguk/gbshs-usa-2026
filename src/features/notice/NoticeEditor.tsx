@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { Sheet } from '../../components/Sheet'
 import { NOTICE_BODY_MAX, NOTICE_TITLE_MAX, type Notice } from '../../lib/repo'
 
+/** 쓰다 만 공지. 창 밖을 잘못 눌러 닫혀도 다시 열면 이어서 쓴다(사이트를 새로 열면 사라진다). */
+const drafts = new Map<string, { title: string; body: string }>()
+
 /** 선생님이 공지를 새로 올리거나 고치는 창 */
 export function NoticeEditor({
   initial,
@@ -14,9 +17,15 @@ export function NoticeEditor({
   onSave: (title: string, body: string) => void
   onClose: () => void
 }) {
-  const [title, setTitle] = useState(initial?.title ?? '')
-  const [body, setBody] = useState(initial?.body ?? '')
-  const ready = title.trim().length > 0 && body.trim().length > 0
+  const draftKey = initial?.id ?? 'new'
+  const start = drafts.get(draftKey) ?? { title: initial?.title ?? '', body: initial?.body ?? '' }
+  const [title, setTitle] = useState(start.title)
+  const [body, setBody] = useState(start.body)
+
+  const keep = (next: { title: string; body: string }) => drafts.set(draftKey, next)
+  const filled = title.trim().length > 0 && body.trim().length > 0
+  const changed = !initial || title.trim() !== initial.title || body.trim() !== initial.body
+  const ready = filled && changed
 
   return (
     <Sheet title={initial ? '공지 고치기' : '공지하기'} onClose={onClose}>
@@ -25,35 +34,48 @@ export function NoticeEditor({
         data-noswipe
         onSubmit={(e) => {
           e.preventDefault()
-          if (ready) onSave(title.trim().slice(0, NOTICE_TITLE_MAX), body.trim().slice(0, NOTICE_BODY_MAX))
+          if (!ready) return
+          drafts.delete(draftKey)
+          onSave(title.trim().slice(0, NOTICE_TITLE_MAX), body.trim().slice(0, NOTICE_BODY_MAX))
         }}
       >
-        <label className="notice-form__label" htmlFor="notice-title">
-          제목
-        </label>
+        <div className="notice-form__label">
+          <label htmlFor="notice-title">제목</label>
+          <span className="mono notice-form__count" id="notice-title-count">
+            {title.length} / {NOTICE_TITLE_MAX}
+          </span>
+        </div>
         <input
           id="notice-title"
           className="notice-form__input"
           value={title}
           maxLength={NOTICE_TITLE_MAX}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value)
+            keep({ title: e.target.value, body })
+          }}
           placeholder="예: 내일 아침 집합 시간이 바뀌었어요"
           autoComplete="off"
+          aria-describedby="notice-title-count"
         />
-        <label className="notice-form__label" htmlFor="notice-body">
-          내용
-          <span className="mono notice-form__count">
+        <div className="notice-form__label">
+          <label htmlFor="notice-body">내용</label>
+          <span className="mono notice-form__count" id="notice-body-count">
             {body.length} / {NOTICE_BODY_MAX}
           </span>
-        </label>
+        </div>
         <textarea
           id="notice-body"
           className="notice-form__input notice-form__area"
           value={body}
           maxLength={NOTICE_BODY_MAX}
           rows={7}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => {
+            setBody(e.target.value)
+            keep({ title, body: e.target.value })
+          }}
           placeholder="학생들이 알아야 할 내용을 적어 주세요."
+          aria-describedby="notice-body-count"
         />
         <p className="notice-form__author">
           올리는 사람 <strong>{author} 선생님</strong>
