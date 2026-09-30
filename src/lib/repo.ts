@@ -49,3 +49,39 @@ export function useLastPage() {
 export function useMapTall() {
   return useStored<boolean>('map-tall', false)
 }
+
+/** 선생님이 올리는 공지. 학생 화면에 팝업으로 뜬다. */
+export type Notice = {
+  id: string
+  title: string
+  body: string
+  /** 올린 선생님 이름 */
+  author: string
+  createdAt: string
+  updatedAt: string
+  /** 올린 사람과 다른 선생님이 고쳤으면 그 이름 */
+  editedBy?: string
+}
+
+export const NOTICE_TITLE_MAX = 60
+export const NOTICE_BODY_MAX = 1000
+
+/**
+ * 공지 목록. 지금은 이 기기에만 저장된다.
+ * DB를 붙이면 여기만 서버 읽기·쓰기로 바꾸면 모든 학생 휴대폰에 뜬다.
+ */
+export function useNotices() {
+  return useStored<Notice[]>('notices', [])
+}
+
+/** 공지 한 판(고치면 판이 바뀐다). '다시 보지 않기'는 판마다 적어서, 선생님이 고친 공지는 다시 뜨게 한다. */
+export const noticeVersion = (n: Notice) => `${n.id}@${n.updatedAt}`
+
+/** 이 기기에서 '다시 보지 않기'를 누른 공지 판 */
+export function useHiddenNotices() {
+  return useStored<string[]>('notices-hidden', [])
+}
+
+export function newNoticeId() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}

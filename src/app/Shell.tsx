@@ -8,17 +8,26 @@ import { PageView } from '../features/page/PageView'
 import { DayStrip } from '../features/strip/DayStrip'
 import { ScheduleSheet } from '../features/schedule/ScheduleSheet'
 import { MenuSheet } from '../features/menu/MenuSheet'
+import { NoticePopup } from '../features/notice/NoticePopup'
+import { NoticeEditor } from '../features/notice/NoticeEditor'
+import { NoticeManage } from '../features/notice/NoticeManage'
 import { goTo, useLocation } from '../lib/router'
-import { useLastPage, useMapTall } from '../lib/repo'
+import { newNoticeId, noticeVersion, useHiddenNotices, useLastPage, useMapTall, useNotices, type Notice } from '../lib/repo'
 import { daysUntil } from '../lib/time'
 import { useApp } from './context'
 
 export function Shell({ onLock }: { onLock: () => void }) {
   const loc = useLocation()
-  const { at, profile } = useApp()
+  const { at, profile, teacher } = useApp()
   const [lastPage, setLastPage] = useLastPage()
   const [mapTall, setMapTall] = useMapTall()
-  const [sheet, setSheet] = useState<'schedule' | 'menu' | null>(null)
+  const [sheet, setSheet] = useState<'schedule' | 'menu' | 'compose' | 'manage' | null>(null)
+  const [notices, setNotices] = useNotices()
+  const [hidden, setHidden] = useHiddenNotices()
+  const [editing, setEditing] = useState<Notice | null>(null)
+  const [previewing, setPreviewing] = useState(false)
+  /** 이번에 사이트를 연 동안 '닫기'로 닫은 공지 판. 다음에 열면 다시 뜬다. */
+  const [closedNow, setClosedNow] = useState<string[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<HTMLElement>(null)
 
@@ -70,6 +79,28 @@ export function Shell({ onLock }: { onLock: () => void }) {
   // 출발 전·다녀와서의 장소 없는 안내 장은 휴대폰에서 지도를 접는다(표지·버스·숙소 장은 지도에 보여 줄 것이 있어 남긴다)
   const noMap =
     current.type === 'slide' && !current.slide.place && (current.day.n === 0 || current.day.n === 10) && !['cover', 'bus', 'rooms'].includes(current.slide.widget ?? '')
+
+  // 공지: 새것이 앞. 학생에게는 '다시 보지 않기'·이번에 닫은 것을 뺀 나머지가 팝업으로 뜬다.
+  const sortedNotices = useMemo(() => [...notices].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [notices])
+  const pendingNotices = profile?.role === 'student' ? sortedNotices.filter((n) => !hidden.includes(noticeVersion(n)) && !closedNow.includes(noticeVersion(n))) : []
+  const author = teacher?.name ?? ''
+
+  const saveNotice = (title: string, body: string) => {
+    const now = new Date().toISOString()
+    if (editing) {
+      setNotices((list) => list.map((n) => (n.id === editing.id ? { ...n, title, body, updatedAt: now, editedBy: author && author !== n.author ? author : undefined } : n)))
+    } else {
+      setNotices((list) => [{ id: newNoticeId(), title, body, author, createdAt: now, updatedAt: now }, ...list])
+    }
+    setEditing(null)
+    setSheet('manage')
+  }
+
+  const hideNotice = (n: Notice) => {
+    // 지워진 공지의 기록은 함께 치워 저장이 쌓이지 않게 한다
+    const live = new Set(notices.map(noticeVersion))
+    setHidden((h) => [...h.filter((v) => live.has(v)), noticeVersion(n)])
+  }
 
   const prev = pages[current.index - 1]
   const next = pages[current.index + 1]
@@ -141,7 +172,63 @@ export function Shell({ onLock }: { onLock: () => void }) {
       </nav>
 
       {sheet === 'schedule' ? <ScheduleSheet current={current} nowKey={nowInfo.page?.key ?? null} onJump={jump} onClose={() => setSheet(null)} /> : null}
-      {sheet === 'menu' ? <MenuSheet onJump={jump} onClose={() => setSheet(null)} onLock={onLock} /> : null}
+      {sheet === 'menu' ? (
+        <MenuSheet
+          onJump={jump}
+          onClose={() => setSheet(null)}
+          onLock={onLock}
+          noticeCount={notices.length}
+          onNotices={(view) => {
+            setEditing(null)
+            setSheet(view)
+          }}
+        />
+      ) : null}
+      {sheet === 'compose' && author ? (
+        <NoticeEditor
+          key={editing?.id ?? 'new'}
+          initial={editing}
+          author={author}
+          onSave={saveNotice}
+          onClose={() => {
+            setSheet(editing ? 'manage' : null)
+            setEditing(null)
+          }}
+        />
+      ) : null}
+      {sheet === 'manage' ? (
+        <NoticeManage
+          notices={sortedNotices}
+          onCompose={() => {
+            setEditing(null)
+            setSheet('compose')
+          }}
+          onEdit={(n) => {
+            setEditing(n)
+            setSheet('compose')
+          }}
+          onDelete={(n) => setNotices((list) => list.filter((x) => x.id !== n.id))}
+          onPreview={() => {
+            setSheet(null)
+            setPreviewing(true)
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+      {previewing && sortedNotices.length ? (
+        <NoticePopup
+          preview
+          items={sortedNotices}
+          onHide={() => {}}
+          onClose={() => {
+            setPreviewing(false)
+            setSheet('manage')
+          }}
+        />
+      ) : null}
+      {!previewing && sheet === null && pendingNotices.length ? (
+        <NoticePopup items={pendingNotices} onHide={hideNotice} onClose={() => setClosedNow((c) => [...c, ...pendingNotices.map(noticeVersion)])} />
+      ) : null}
       <span className="sr-only" aria-live="polite">
         {current.chapter.label} {pageTitle(current)}
       </span>

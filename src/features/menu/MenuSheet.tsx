@@ -13,7 +13,19 @@ const ROLES: { id: Role; label: string; sub: string; icon: IconName }[] = [
 ]
 
 /** 나는 누구인지(역할·이름) 고르기와 자주 찾는 장 바로가기 */
-export function MenuSheet({ onJump, onClose, onLock }: { onJump: (key: string) => void; onClose: () => void; onLock: () => void }) {
+export function MenuSheet({
+  onJump,
+  onClose,
+  onLock,
+  noticeCount,
+  onNotices,
+}: {
+  onJump: (key: string) => void
+  onClose: () => void
+  onLock: () => void
+  noticeCount: number
+  onNotices: (view: 'compose' | 'manage') => void
+}) {
   const { profile, setProfile, roster, me, teacher } = useApp()
   const role = profile?.role
   const [classNo, setClassNo] = useState<number>(me?.classNo ?? profile?.classNo ?? 1)
@@ -88,6 +100,24 @@ export function MenuSheet({ onJump, onClose, onLock }: { onJump: (key: string) =
               ))}
             </ul>
             <p className="fineprint">인원 확인 화면에서 볼 반은 그 화면에서 바꿀 수 있어요.</p>
+          </section>
+        ) : null}
+
+        {role === 'teacher' ? (
+          <section className="whopick">
+            <h3 className="whopick__title">학생 공지</h3>
+            <div className="notice-entry">
+              <button type="button" className="quick__btn" onClick={() => onNotices('compose')} disabled={!teacher}>
+                <Icon name="megaphone" />
+                공지하기
+              </button>
+              <button type="button" className="quick__btn" onClick={() => onNotices('manage')} disabled={!teacher}>
+                <Icon name="list" />
+                팝업 관리
+                {noticeCount ? <span className="notice-entry__count mono">{noticeCount}</span> : null}
+              </button>
+            </div>
+            {teacher ? null : <p className="fineprint">위에서 선생님 이름을 먼저 골라 주세요. 공지에 올린 사람으로 보여요.</p>}
           </section>
         ) : null}
 
