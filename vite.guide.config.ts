@@ -19,12 +19,29 @@ function guideHtml(): Plugin {
   }
 }
 
+/** 선생님 메모(teacherNotes·changes)는 학생 화면에 안 나오므로 사전 안내판 파일에서 아예 뺀다 */
+function stripTeacherNotes(): Plugin {
+  return {
+    name: 'guide-strip-teacher-notes',
+    enforce: 'pre',
+    transform(code, id) {
+      if (!/[\\/]content[\\/]days[\\/]day\d+\.json$/.test(id)) return null
+      const day = JSON.parse(code)
+      for (const s of day.slides ?? []) {
+        s.teacherNotes = []
+        s.changes = []
+      }
+      return { code: JSON.stringify(day), map: null }
+    },
+  }
+}
+
 const base = baseConfig(true)
 
 export default defineConfig({
   ...base,
   base: BASE,
   publicDir: 'guide/public',
-  plugins: [...(base.plugins ?? []), guideHtml()],
+  plugins: [stripTeacherNotes(), ...(base.plugins ?? []), guideHtml()],
   build: { ...base.build, outDir: 'dist/guide', emptyOutDir: true },
 })

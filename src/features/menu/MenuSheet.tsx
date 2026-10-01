@@ -34,7 +34,7 @@ export function MenuSheet({
 
   const find = (widget: string) => slidePages.find((p) => p.slide.widget === widget)?.key
   const quick: { key?: string; label: string; icon: IconName }[] = [
-    { key: find('bus'), label: GUIDE ? '버스 자리' : '버스와 내 자리', icon: 'seat' },
+    { key: find('bus'), label: GUIDE ? '버스와 자리' : '버스와 내 자리', icon: 'seat' },
     { key: find('rooms'), label: '숙소와 방', icon: 'bed' },
     { key: find('contacts'), label: '비상 연락처', icon: 'phone' },
     { key: find('checklist'), label: '챙길 것', icon: 'check' },

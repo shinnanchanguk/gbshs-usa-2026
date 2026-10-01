@@ -72,7 +72,7 @@ self.addEventListener('fetch', (event) => {
   const req = event.request
   if (req.method !== 'GET') return
   const url = new URL(req.url)
-  if (url.origin === self.location.origin && url.pathname.startsWith(GUIDE_PATH)) return
+  if (url.origin === self.location.origin && (url.pathname === GUIDE_PATH.slice(0, -1) || url.pathname.startsWith(GUIDE_PATH))) return
   if (req.mode === 'navigate' && url.origin === self.location.origin) {
     event.respondWith(networkFirst(req))
     return

@@ -8,6 +8,7 @@ import { goTo } from '../../lib/router'
 import { clock, daysUntil } from '../../lib/time'
 import { BusWidget } from '../roster/BusWidget'
 import { GUIDE, LATER } from '../../lib/edition'
+import { LaterNote } from './LaterNote'
 import { RoomsWidget } from '../roster/RoomsWidget'
 import { ContactsWidget } from './ContactsWidget'
 import { MentorsWidget } from './MentorsWidget'
@@ -256,15 +257,3 @@ function RulesBadge({ page }: { page: SlidePage }) {
   )
 }
 
-/** 사전 안내판에서 명단(자리·방·연락처) 대신 두는 안내 */
-export function LaterNote({ icon, title, text }: { icon: 'seat' | 'bed' | 'phone' | 'users'; title: string; text: string }) {
-  return (
-    <section className="later" aria-label={title}>
-      <Icon name={icon} size="1.15rem" />
-      <div>
-        <h3 className="later__title">{title}</h3>
-        <p className="later__text">{text}</p>
-      </div>
-    </section>
-  )
-}

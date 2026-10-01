@@ -43,6 +43,7 @@ https://shinnanchanguk.github.io/gbshs-usa-2026/guide/
 - 빠진 기능을 가리키는 내용 문장은 `content/guide-overrides.json`에서 사전 안내판에서만 바꿔 보여 줍니다. 원래 문장을 고치면 이 파일의 `from`도 같이 고쳐야 하고, `npm run check`가 어긋나면 알려 줍니다.
 - `npm run build`가 본 사이트(`dist/`)와 사전 안내판(`dist/guide/`)을 함께 만듭니다. 사진은 본 사이트에 올린 것을 같이 씁니다.
 - 사전 안내판은 서비스 워커를 두지 않고, 본 사이트 서비스 워커는 `/guide/` 주소를 건드리지 않습니다.
+- `npm run build` 끝에서 `scripts/check-guide.mjs`가 사전 안내판에 암호문 명단·복호화 코드·선생님 메모가 없는지 보고, 있으면 빌드를 멈춥니다(명단 파일이 있는 컴퓨터에서는 이름·전화번호까지 확인).
 
 ## 입장 코드와 명단 (공개 레포)
 

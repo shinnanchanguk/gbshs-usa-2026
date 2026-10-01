@@ -24,12 +24,13 @@ export const days: Day[] = Object.values(dayModules).sort((a, b) => a.n - b.n)
 
 // 학생 사전 안내판: 느낀 점·보고서처럼 빠진 기능을 가리키는 장과 문장을 바꾼다(content/guide-overrides.json)
 if (GUIDE) {
-  const { hidePages, text } = guideOverridesJson as { hidePages: string[]; text: { from: string; to: string | null }[] }
+  const { hidePages, titles = {}, text } = guideOverridesJson as { hidePages: string[]; titles?: Record<string, string>; text: { from: string; to: string | null }[] }
   const swap = new Map(text.map((t) => [t.from, t.to]))
   const fix = (lines?: string[]) => lines?.flatMap((l) => (swap.has(l) ? (swap.get(l) == null ? [] : [swap.get(l)!]) : [l]))
   for (const day of days) {
     day.slides = day.slides.filter((s) => !hidePages.includes(s.id))
     for (const s of day.slides) {
+      if (titles[s.id]) s.title = titles[s.id]
       if (s.summary && swap.has(s.summary)) s.summary = swap.get(s.summary) ?? ''
       s.details = fix(s.details) ?? s.details
       s.notices = fix(s.notices) ?? s.notices

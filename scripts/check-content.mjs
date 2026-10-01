@@ -151,7 +151,7 @@ if (!fs.existsSync(encPath)) errors.push('content/roster.enc.json 이 없다 (np
 {
   const over = read('content/guide-overrides.json')
   const ids = new Set(days.flatMap((d) => d.slides.map((s) => s.id)))
-  for (const id of over.hidePages ?? []) if (!ids.has(id)) errors.push(`content/guide-overrides.json: 감출 장 "${id}" 이 없다`)
+  for (const id of [...(over.hidePages ?? []), ...Object.keys(over.titles ?? {})]) if (!ids.has(id)) errors.push(`content/guide-overrides.json: 장 "${id}" 이 없다`)
   const lines = new Set([
     ...days.flatMap((d) => d.slides.flatMap((s) => [s.summary, ...(s.details ?? []), ...(s.notices ?? []), ...(s.tips ?? [])])),
     ...(trip.deadlines ?? []).map((d) => d.detail),

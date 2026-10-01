@@ -5,7 +5,7 @@ import { useApp } from '../../app/context'
 import type { Student } from '../../lib/roster'
 import { dateLabel } from '../../lib/time'
 import { GUIDE, LATER } from '../../lib/edition'
-import { LaterNote } from '../guide/Widget'
+import { LaterNote } from '../guide/LaterNote'
 
 /** 숙소 3곳 + 내 방 + 전체 방 배정(펼쳐 보기) */
 export function RoomsWidget() {
