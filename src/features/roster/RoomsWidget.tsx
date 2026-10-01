@@ -4,6 +4,8 @@ import { Icon } from '../../components/Icon'
 import { useApp } from '../../app/context'
 import type { Student } from '../../lib/roster'
 import { dateLabel } from '../../lib/time'
+import { GUIDE, LATER } from '../../lib/edition'
+import { LaterNote } from '../guide/Widget'
 
 /** 숙소 3곳 + 내 방 + 전체 방 배정(펼쳐 보기) */
 export function RoomsWidget() {
@@ -56,10 +58,13 @@ export function RoomsWidget() {
         ))}
       </ol>
 
+      {GUIDE ? <LaterNote icon="bed" title="방 배정" text={`누구와 같은 방을 쓰는지는 ${LATER}`} /> : null}
+      {GUIDE ? null : (
       <button type="button" className="btn btn--ghost btn--block" onClick={() => setOpen(!open)} aria-expanded={open}>
         <Icon name="users" size="1.05rem" /> 전체 방 배정 {open ? '접기' : '보기'}
       </button>
-      {open ? (
+      )}
+      {open && !GUIDE ? (
         <div className="roomtable" data-noswipe>
           {sorted.map(([label, list]) => (
             <div key={label} className="roomtable__row" data-me={list.some((s) => s.id === me?.id) || undefined}>

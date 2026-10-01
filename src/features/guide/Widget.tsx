@@ -7,6 +7,7 @@ import { useChecklist } from '../../lib/repo'
 import { goTo } from '../../lib/router'
 import { clock, daysUntil } from '../../lib/time'
 import { BusWidget } from '../roster/BusWidget'
+import { GUIDE, LATER } from '../../lib/edition'
 import { RoomsWidget } from '../roster/RoomsWidget'
 import { ContactsWidget } from './ContactsWidget'
 import { MentorsWidget } from './MentorsWidget'
@@ -25,7 +26,7 @@ export function Widget({ name, page }: { name: WidgetName; page: SlidePage }) {
     case 'money':
       return <TipWidget />
     case 'bus':
-      return <BusWidget />
+      return GUIDE ? <LaterNote icon="seat" title="버스 자리" text={`호차·자리·옆자리 친구와 도우미 역할은 ${LATER}`} /> : <BusWidget />
     case 'rooms':
     case 'hotels':
       return <RoomsWidget />
@@ -252,5 +253,18 @@ function RulesBadge({ page }: { page: SlidePage }) {
         이 약속 {page.slide.details.length}가지는 <strong>100명이 함께 움직이기 위한 최소한</strong>이에요. 한 사람이 어기면 다음 일정의 자유 시간부터 줄어들어요.
       </p>
     </div>
+  )
+}
+
+/** 사전 안내판에서 명단(자리·방·연락처) 대신 두는 안내 */
+export function LaterNote({ icon, title, text }: { icon: 'seat' | 'bed' | 'phone' | 'users'; title: string; text: string }) {
+  return (
+    <section className="later" aria-label={title}>
+      <Icon name={icon} size="1.15rem" />
+      <div>
+        <h3 className="later__title">{title}</h3>
+        <p className="later__text">{text}</p>
+      </div>
+    </section>
   )
 }

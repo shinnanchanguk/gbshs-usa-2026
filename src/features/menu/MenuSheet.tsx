@@ -6,6 +6,7 @@ import { useApp } from '../../app/context'
 import { forget } from '../../lib/roster'
 import type { Role } from '../../lib/repo'
 import { ReflectionExport } from '../reflection/ReflectionExport'
+import { GUIDE } from '../../lib/edition'
 
 const ROLES: { id: Role; label: string; sub: string; icon: IconName }[] = [
   { id: 'student', label: '학생', sub: '내 자리·방, 장마다 느낀 점', icon: 'user' },
@@ -33,7 +34,7 @@ export function MenuSheet({
 
   const find = (widget: string) => slidePages.find((p) => p.slide.widget === widget)?.key
   const quick: { key?: string; label: string; icon: IconName }[] = [
-    { key: find('bus'), label: '버스와 내 자리', icon: 'seat' },
+    { key: find('bus'), label: GUIDE ? '버스 자리' : '버스와 내 자리', icon: 'seat' },
     { key: find('rooms'), label: '숙소와 방', icon: 'bed' },
     { key: find('contacts'), label: '비상 연락처', icon: 'phone' },
     { key: find('checklist'), label: '챙길 것', icon: 'check' },
@@ -42,8 +43,10 @@ export function MenuSheet({
   ]
 
   return (
-    <Sheet title={profile ? '내 정보' : '누가 보나요?'} onClose={onClose}>
+    <Sheet title={GUIDE ? '바로 가기' : profile ? '내 정보' : '누가 보나요?'} onClose={onClose}>
       <div className="menu">
+        {GUIDE ? null : (
+        <>
         <div className="rolepick" role="radiogroup" aria-label="역할">
           {ROLES.map((r) => (
             <button
@@ -124,9 +127,12 @@ export function MenuSheet({
 
         {role === 'teacher' ? <ReflectionExport /> : null}
 
+        </>
+        )}
+
         {profile ? (
           <>
-            <h3 className="menu__h">바로 가기</h3>
+            {GUIDE ? null : <h3 className="menu__h">바로 가기</h3>}
             <ul className="quick">
               {quick
                 .filter((q) => q.key)
@@ -145,19 +151,27 @@ export function MenuSheet({
           </>
         ) : null}
 
-        <p className="fineprint menu__fine">
-          느낀 점·인원 확인·체크한 것은 지금은 이 휴대폰에만 저장돼요. 나중에 로그인이 생기면 선생님과 함께 볼 수 있게 옮겨 드려요.
-        </p>
-        <button
-          type="button"
-          className="link-btn"
-          onClick={() => {
-            forget()
-            onLock()
-          }}
-        >
-          <Icon name="lock" size="1rem" /> 이 기기에서 잠그기(입장 코드 다시 묻기)
-        </button>
+        {GUIDE ? (
+          <p className="fineprint menu__fine">
+            이 링크는 출발 전 사전 안내용이에요. 준비물과 여행 일정은 모두 볼 수 있고, 버스 자리·방 배정·인솔 선생님 연락처는 추후 공지 예정이에요.
+          </p>
+        ) : (
+          <>
+          <p className="fineprint menu__fine">
+            느낀 점·인원 확인·체크한 것은 지금은 이 휴대폰에만 저장돼요. 나중에 로그인이 생기면 선생님과 함께 볼 수 있게 옮겨 드려요.
+          </p>
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => {
+              forget()
+              onLock()
+            }}
+          >
+            <Icon name="lock" size="1rem" /> 이 기기에서 잠그기(입장 코드 다시 묻기)
+          </button>
+          </>
+        )}
       </div>
     </Sheet>
   )

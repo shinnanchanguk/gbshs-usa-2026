@@ -65,10 +65,14 @@ async function networkFirst(request) {
   }
 }
 
+// 학생 사전 안내판(/guide/)은 따로 빌드한 사이트라 이 서비스 워커가 맡지 않는다(오프라인 때 본 사이트 화면이 대신 뜨지 않게)
+const GUIDE_PATH = new URL('./guide/', self.location).pathname
+
 self.addEventListener('fetch', (event) => {
   const req = event.request
   if (req.method !== 'GET') return
   const url = new URL(req.url)
+  if (url.origin === self.location.origin && url.pathname.startsWith(GUIDE_PATH)) return
   if (req.mode === 'navigate' && url.origin === self.location.origin) {
     event.respondWith(networkFirst(req))
     return

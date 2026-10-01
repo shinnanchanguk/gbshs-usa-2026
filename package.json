@@ -6,7 +6,8 @@
   "description": "경기북과학고 2026 해외 이공계 진로체험학습(미국 동부) 안내 사이트",
   "scripts": {
     "dev": "vite",
-    "build": "npm run check && tsc -b && vite build",
+    "build": "npm run check && tsc -b && vite build && vite build --config vite.guide.config.ts",
+    "build:guide": "vite build --config vite.guide.config.ts",
     "preview": "vite preview",
     "check": "node scripts/check-content.mjs",
     "photos:import": "node scripts/import-photos.mjs",

@@ -3050,6 +3050,36 @@ button.seat[data-present='true'] .seat__no {
   }
 }
 
+/* 학생 사전 안내판: 명단(자리·방·연락처) 대신 두는 '추후 공지 예정' 칸 */
+.later {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: var(--s-4);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r-lg);
+  background: var(--paper-2);
+}
+
+.later > .icon,
+.later > svg {
+  margin-top: 2px;
+  color: var(--accent-ink);
+}
+
+.later__title {
+  font-size: var(--fs-base);
+  font-weight: 800;
+}
+
+.later__text {
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+
 /* ── 공지 ─────────────────────────────────────────────────────────────── */
 
 /* 공지 한 건(학생 팝업·팝업 관리 공용) */

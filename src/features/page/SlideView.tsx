@@ -5,6 +5,7 @@ import { useApp } from '../../app/context'
 import { goTo } from '../../lib/router'
 import { AttendancePanel } from '../attendance/AttendancePanel'
 import { ReflectBox } from '../reflection/ReflectBox'
+import { GUIDE } from '../../lib/edition'
 import { TeacherNotes } from '../teacher/TeacherNotes'
 import { Widget } from '../guide/Widget'
 import { LegChip, MeetingPass, Photos, Section, kstText, mapsLink, timeText } from './parts'
@@ -122,7 +123,7 @@ export function SlideView({ page }: { page: SlidePage }) {
         </div>
       ) : null}
 
-      {role === 'student' && slide.reflect ? <ReflectBox page={page} /> : null}
+      {role === 'student' && slide.reflect && !GUIDE ? <ReflectBox page={page} /> : null}
       {role === 'teacher' && slide.attendance ? <AttendancePanel page={page} /> : null}
       {role === 'teacher' ? <TeacherNotes page={page} /> : null}
 

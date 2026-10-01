@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Roster, Student, Teacher } from '../lib/roster'
 import { useProfile, type Profile } from '../lib/repo'
 import { now } from '../lib/time'
+import { GUIDE } from '../lib/edition'
+
+/** 사전 안내판은 역할을 고르지 않고 이름 없는 학생 화면으로 본다 */
+const GUIDE_PROFILE: Profile = { role: 'student' }
 
 type AppState = {
   roster: Roster
@@ -18,7 +22,8 @@ type AppState = {
 const Ctx = createContext<AppState | null>(null)
 
 export function AppProvider({ roster, children }: { roster: Roster; children: ReactNode }) {
-  const [profile, setProfile] = useProfile()
+  const [stored, setProfile] = useProfile()
+  const profile = GUIDE ? GUIDE_PROFILE : stored
   const [at, setAt] = useState(now)
   useEffect(() => {
     const id = window.setInterval(() => setAt(now()), 60_000)

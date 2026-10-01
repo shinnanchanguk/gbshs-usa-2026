@@ -1,6 +1,7 @@
 import { trip } from '../../content'
 import { Icon } from '../../components/Icon'
 import { useApp } from '../../app/context'
+import { GUIDE, LATER } from '../../lib/edition'
 
 const tel = (p: string) => `tel:${p.replace(/[^+\d]/g, '')}`
 
@@ -19,6 +20,14 @@ export function ContactsWidget() {
         ))}
       </ol>
 
+      {GUIDE ? (
+        <section className="card">
+          <h3 className="card__title">
+            <Icon name="users" size="1.05rem" /> 인솔 선생님
+          </h3>
+          <p className="later__text">인솔 선생님 연락처는 {LATER}</p>
+        </section>
+      ) : (
       <section className="card">
         <h3 className="card__title">
           <Icon name="users" size="1.05rem" /> 인솔 선생님
@@ -44,6 +53,7 @@ export function ContactsWidget() {
         </ul>
         <p className="fineprint">현지에서 쓸 번호가 따로 생기면 다시 알려 줘요.</p>
       </section>
+      )}
 
       {trip.contacts.map((g) => (
         <section key={g.group} className="card">

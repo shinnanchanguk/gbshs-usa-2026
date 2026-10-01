@@ -147,6 +147,18 @@ if (fs.existsSync(privatePath)) {
 const encPath = path.join(ROOT, 'content', 'roster.enc.json')
 if (!fs.existsSync(encPath)) errors.push('content/roster.enc.json 이 없다 (npm run roster:seal 로 만든다)')
 
+// 학생 사전 안내판에서 바꿔 보여 줄 문장이 내용 파일에 그대로 있는지(문장을 고치면 여기도 같이 고쳐야 한다)
+{
+  const over = read('content/guide-overrides.json')
+  const ids = new Set(days.flatMap((d) => d.slides.map((s) => s.id)))
+  for (const id of over.hidePages ?? []) if (!ids.has(id)) errors.push(`content/guide-overrides.json: 감출 장 "${id}" 이 없다`)
+  const lines = new Set([
+    ...days.flatMap((d) => d.slides.flatMap((s) => [s.summary, ...(s.details ?? []), ...(s.notices ?? []), ...(s.tips ?? [])])),
+    ...(trip.deadlines ?? []).map((d) => d.detail),
+  ])
+  for (const t of over.text ?? []) if (!lines.has(t.from)) errors.push(`content/guide-overrides.json: 바꿀 문장을 내용에서 찾지 못했다 ("${t.from.slice(0, 24)}…")`)
+}
+
 for (const w of warnings) console.warn(`주의: ${w}`)
 if (errors.length) {
   console.error(`검사 실패 (${errors.length}건)`)

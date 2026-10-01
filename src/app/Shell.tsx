@@ -15,6 +15,7 @@ import { goTo, useLocation } from '../lib/router'
 import { noticeVersion, useHiddenNotices, useLastPage, useMapTall, useNotices, type Notice } from '../lib/repo'
 import { daysUntil } from '../lib/time'
 import { useApp } from './context'
+import { GUIDE } from '../lib/edition'
 
 export function Shell({ onLock }: { onLock: () => void }) {
   const loc = useLocation()
@@ -127,7 +128,8 @@ export function Shell({ onLock }: { onLock: () => void }) {
   const sortedNotices = useMemo(() => [...notices].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [notices])
   // 학생에게는 모든 공지, 보호자에게는 '보호자 화면에도 띄우기'를 켠 공지만
   const forMe = (n: Notice) => profile?.role === 'student' || (profile?.role === 'parent' && n.alsoParents === true)
-  const pendingNotices = sortedNotices.filter((n) => forMe(n) && !hidden.includes(noticeVersion(n)) && !closedNow.includes(noticeVersion(n)))
+  // 사전 안내판에는 공지가 없다(같은 휴대폰에서 본 사이트로 올린 공지가 섞이지 않게)
+  const pendingNotices = GUIDE ? [] : sortedNotices.filter((n) => forMe(n) && !hidden.includes(noticeVersion(n)) && !closedNow.includes(noticeVersion(n)))
   const author = teacher?.name ?? ''
 
   const saveNotice = (title: string, body: string, alsoParents: boolean) => {
@@ -162,8 +164,8 @@ export function Shell({ onLock }: { onLock: () => void }) {
               </>
             )}
           </button>
-          <button type="button" className="icon-btn" onClick={() => setSheet('menu')} aria-label="내 정보와 메뉴">
-            <Icon name="user" />
+          <button type="button" className="icon-btn" onClick={() => setSheet('menu')} aria-label={GUIDE ? '바로 가기' : '내 정보와 메뉴'}>
+            <Icon name={GUIDE ? 'menu' : 'user'} />
           </button>
         </div>
       </header>
@@ -221,7 +223,7 @@ export function Shell({ onLock }: { onLock: () => void }) {
           }}
         />
       ) : null}
-      {sheet === 'compose' && author ? (
+      {!GUIDE && sheet === 'compose' && author ? (
         <NoticeEditor
           key={editing?.id ?? 'new'}
           initial={editing}
@@ -233,7 +235,7 @@ export function Shell({ onLock }: { onLock: () => void }) {
           }}
         />
       ) : null}
-      {sheet === 'manage' ? (
+      {!GUIDE && sheet === 'manage' ? (
         <NoticeManage
           notices={sortedNotices}
           onCompose={() => {
@@ -252,7 +254,7 @@ export function Shell({ onLock }: { onLock: () => void }) {
           onClose={() => setSheet(null)}
         />
       ) : null}
-      {previewing && sortedNotices.length ? (
+      {!GUIDE && previewing && sortedNotices.length ? (
         <NoticePopup
           preview
           items={sortedNotices}
@@ -263,7 +265,7 @@ export function Shell({ onLock }: { onLock: () => void }) {
           }}
         />
       ) : null}
-      {!previewing && sheet === null && pendingNotices.length ? (
+      {!GUIDE && !previewing && sheet === null && pendingNotices.length ? (
         <NoticePopup items={pendingNotices} onHide={hideNotice} onClose={() => setClosedNow((c) => [...c, ...pendingNotices.map(noticeVersion)])} />
       ) : null}
       <span className="sr-only" aria-live="polite">

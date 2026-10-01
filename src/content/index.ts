@@ -8,6 +8,8 @@ import tripJson from '../../content/trip.json'
 import seatingJson from '../../content/seating.json'
 import photoSourcesJson from '../../content/photo-sources.json'
 import routesJson from '../../content/routes.json'
+import guideOverridesJson from '../../content/guide-overrides.json'
+import { GUIDE, SITE_BASE } from '../lib/edition'
 import type { Day, PhotoSources, Seating, Slide, Trip } from './schema'
 import { instant, toMin } from '../lib/time'
 import { km, type LngLat } from '../lib/geo'
@@ -19,6 +21,23 @@ const dayModules = import.meta.glob<Day>('../../content/days/day*.json', { eager
 export const trip = tripJson as Trip
 export const seating = seatingJson as unknown as Seating
 export const days: Day[] = Object.values(dayModules).sort((a, b) => a.n - b.n)
+
+// 학생 사전 안내판: 느낀 점·보고서처럼 빠진 기능을 가리키는 장과 문장을 바꾼다(content/guide-overrides.json)
+if (GUIDE) {
+  const { hidePages, text } = guideOverridesJson as { hidePages: string[]; text: { from: string; to: string | null }[] }
+  const swap = new Map(text.map((t) => [t.from, t.to]))
+  const fix = (lines?: string[]) => lines?.flatMap((l) => (swap.has(l) ? (swap.get(l) == null ? [] : [swap.get(l)!]) : [l]))
+  for (const day of days) {
+    day.slides = day.slides.filter((s) => !hidePages.includes(s.id))
+    for (const s of day.slides) {
+      if (s.summary && swap.has(s.summary)) s.summary = swap.get(s.summary) ?? ''
+      s.details = fix(s.details) ?? s.details
+      s.notices = fix(s.notices) ?? s.notices
+      s.tips = fix(s.tips) ?? s.tips
+    }
+  }
+  for (const d of trip.deadlines) if (d.detail && swap.has(d.detail)) d.detail = swap.get(d.detail) ?? ''
+}
 
 const photoSources = photoSourcesJson as PhotoSources
 
@@ -136,7 +155,8 @@ export function pageAt(at: Date): { page: SlidePage; state: 'live' | 'next' } | 
   return { page: null, state: 'after' }
 }
 
-const base = import.meta.env.BASE_URL
+// 사진은 본 사이트에만 올려 두고 사전 안내판도 같은 주소를 쓴다
+const base = SITE_BASE
 
 export function photoUrl(id: string, size: 'full' | 'thumb' = 'full'): string | null {
   const entry = photoSources.photos[id]

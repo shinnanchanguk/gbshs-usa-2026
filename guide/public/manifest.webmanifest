@@ -1,0 +1,16 @@
+{
+  "name": "USA 2026 · 미국 동부 진로체험학습 사전 안내",
+  "short_name": "USA 2026 안내",
+  "description": "경기북과학고 1학년 해외 이공계 진로체험학습 사전 안내(준비물·일정)",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f1eb",
+  "theme_color": "#f4f1eb",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
