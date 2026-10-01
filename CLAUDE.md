@@ -11,6 +11,7 @@
 6. 좌표는 `[경도, 위도]`. 모르면 넣지 말고 teacherNotes에 "위치 확인 필요". 좌표를 바꾸면 `npm run routes`.
 7. 공개 레포: 학생·교사 실명, 개인 전화번호, 건강 정보, 객실·좌석 배정은 공개 파일에 금지. 명단은 `private/roster.json` → `npm run roster:seal` 암호문으로만.
 8. 끝나면 `npm run check`와 `npm run build`가 통과하는지 확인한다.
+9. 학생 사전 안내판(`/guide/`, 비밀번호 없음)도 같은 내용을 보여 준다. 입장 코드·느낀 점·명단을 가리키는 학생용 문장을 새로 쓰면 `content/guide-overrides.json`에 사전 안내판용 문장을 함께 적는다.
 
 ## 저장
 - 느낀 점·출석·체크리스트는 `src/lib/repo.ts` 한곳에서 저장한다(지금은 기기 저장). DB를 붙일 때 이 파일만 바꾼다.
