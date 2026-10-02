@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useMemo } from 'react'
 import { useStored } from './storage'
+import { deletePhoto } from './photoStore'
 import type { ThemeId } from '../content'
 
 export type Role = 'student' | 'teacher' | 'parent'
@@ -256,4 +257,100 @@ export function useHiddenNotices() {
     [setRaw],
   )
   return { hidden, hide }
+}
+
+/** 학생이 장소에서 올린 사진 한 장(바이트는 photoStore 에, 여기에는 목록만) */
+export type FieldPhoto = { id: string; w: number; h: number; at: string }
+/** '학번|장 key' → 그 장소에서 올린 사진 목록 */
+type FieldPhotoBook = Record<string, FieldPhoto[]>
+
+/** 한 장소에 올릴 수 있는 사진 수 */
+export const FIELD_PHOTO_MAX = 5
+
+function parseFieldPhotos(v: unknown): FieldPhoto[] {
+  if (!Array.isArray(v)) return []
+  return v
+    .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object')
+    .filter((p) => typeof p.id === 'string' && /^[a-z0-9-]{8,64}$/i.test(p.id as string))
+    .map((p) => ({ id: p.id as string, w: Number(p.w) || 0, h: Number(p.h) || 0, at: typeof p.at === 'string' ? p.at : '' }))
+    .slice(0, FIELD_PHOTO_MAX)
+}
+
+/** 한 학생의 장소별 사진 목록 */
+function photosOf(raw: unknown, studentId: string): Record<string, FieldPhoto[]> {
+  const out: Record<string, FieldPhoto[]> = {}
+  for (const [key, v] of Object.entries(asRecord(raw))) {
+    const bar = key.indexOf(SEP)
+    if (bar < 0 || key.slice(0, bar) !== studentId) continue
+    const page = key.slice(bar + 1)
+    if (!page || unsafeKey(page)) continue
+    const list = parseFieldPhotos(v)
+    if (list.length) out[page] = list
+  }
+  return out
+}
+
+/**
+ * 학생이 장소마다 올린 사진. 학생 본인은 올리고 지우고, 보호자 화면은 자녀 것을 읽기만 한다.
+ * 지금은 이 기기에만 있어서 보호자는 아이 휴대폰으로 봐야 한다.
+ *
+ * DB를 붙일 때 지킬 것:
+ * - 사진 바이트는 오브젝트 스토리지에 두고 DB 에는 (student_id, page_key, 주소, 크기)만 둔다.
+ * - 올리기·지우기는 그 학생 계정만, 읽기는 그 학생·그 학생의 보호자 계정·인솔 선생님만 허용한다. 학번은 로그인한 계정에서 정한다.
+ * - 서버에서도 장소당 장수(FIELD_PHOTO_MAX)와 한 장 크기를 확인하고, 받은 사진을 다시 줄여 EXIF(GPS)를 지운다.
+ */
+export function useFieldPhotos(studentId: string | undefined) {
+  const [raw, setRaw] = useStored<unknown>('field-photos', {})
+  const book = useMemo(() => (studentId ? photosOf(raw, studentId) : {}), [raw, studentId])
+
+  const add = useCallback(
+    (pageKey: string, photo: FieldPhoto) => {
+      if (!studentId || unsafeKey(pageKey) || pageKey.includes(SEP)) return false
+      let ok = false
+      setRaw((prev: unknown) => {
+        const copy: FieldPhotoBook = { ...(asRecord(prev) as FieldPhotoBook) }
+        const k = studentId + SEP + pageKey
+        const list = parseFieldPhotos(copy[k])
+        if (list.length >= FIELD_PHOTO_MAX) return prev
+        ok = true
+        copy[k] = [...list, photo]
+        return copy
+      })
+      return ok
+    },
+    [studentId, setRaw],
+  )
+
+  const remove = useCallback(
+    (pageKey: string, id: string) => {
+      if (!studentId) return
+      setRaw((prev: unknown) => {
+        const copy: FieldPhotoBook = { ...(asRecord(prev) as FieldPhotoBook) }
+        const k = studentId + SEP + pageKey
+        const list = parseFieldPhotos(copy[k]).filter((p) => p.id !== id)
+        if (list.length) copy[k] = list
+        else delete copy[k]
+        return copy
+      })
+      void deletePhoto(id)
+    },
+    [studentId, setRaw],
+  )
+
+  return { book, add, remove }
+}
+
+export function newPhotoId() {
+  return newNoticeId().replace(/[^a-z0-9-]/gi, '').slice(0, 40) || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+/** 한 학생의 느낀 점을 읽기만 한다(보호자 화면). 이름을 고르기 전에 쓴 글을 옮기는 일은 하지 않는다. */
+export function useStudentReflections(studentId: string | undefined): ReflectionBook {
+  const [raw] = useStored<unknown>('reflections', {})
+  return useMemo(() => {
+    const out: ReflectionBook = {}
+    if (!studentId) return out
+    for (const e of reflectionEntries(raw)) if (e.owner === studentId) out[e.page] = e.r
+    return out
+  }, [raw, studentId])
 }

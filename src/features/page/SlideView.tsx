@@ -1,10 +1,11 @@
-import { KIND_LABEL, pageAt, pages, type SlidePage } from '../../content'
+import { KIND_LABEL, canRecord, pageAt, pages, type SlidePage } from '../../content'
 import { rich } from '../../components/Rich'
 import { Icon, KIND_ICON } from '../../components/Icon'
 import { useApp } from '../../app/context'
 import { goTo } from '../../lib/router'
 import { AttendancePanel } from '../attendance/AttendancePanel'
 import { ReflectBox } from '../reflection/ReflectBox'
+import { ChildRecord } from '../record/ChildRecord'
 import { GUIDE } from '../../lib/edition'
 import { TeacherNotes } from '../teacher/TeacherNotes'
 import { Widget } from '../guide/Widget'
@@ -123,7 +124,8 @@ export function SlideView({ page }: { page: SlidePage }) {
         </div>
       ) : null}
 
-      {role === 'student' && slide.reflect && !GUIDE ? <ReflectBox page={page} /> : null}
+      {role === 'student' && canRecord(page) && !GUIDE ? <ReflectBox page={page} /> : null}
+      {role === 'parent' && canRecord(page) && !GUIDE ? <ChildRecord page={page} /> : null}
       {role === 'teacher' && slide.attendance ? <AttendancePanel page={page} /> : null}
       {role === 'teacher' ? <TeacherNotes page={page} /> : null}
 

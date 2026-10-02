@@ -9,9 +9,9 @@ import { ReflectionExport } from '../reflection/ReflectionExport'
 import { GUIDE } from '../../lib/edition'
 
 const ROLES: { id: Role; label: string; sub: string; icon: IconName }[] = [
-  { id: 'student', label: '학생', sub: '내 자리·방, 장마다 느낀 점', icon: 'user' },
+  { id: 'student', label: '학생', sub: '내 자리·방, 장소마다 사진·느낀 점', icon: 'user' },
   { id: 'teacher', label: '선생님', sub: '인원 확인, 선생님 메모', icon: 'users' },
-  { id: 'parent', label: '보호자', sub: '한국 시각, 우리 아이 자리·방', icon: 'shield' },
+  { id: 'parent', label: '보호자', sub: '한국 시각, 우리 아이 자리·방·기록', icon: 'shield' },
 ]
 
 /** 나는 누구인지(역할·이름) 고르기와 자주 찾는 장 바로가기 */
@@ -158,7 +158,7 @@ export function MenuSheet({
         ) : (
           <>
           <p className="fineprint menu__fine">
-            느낀 점·인원 확인·체크한 것은 지금은 이 휴대폰에만 저장돼요. 나중에 로그인이 생기면 선생님과 함께 볼 수 있게 옮겨 드려요.
+            사진·느낀 점·인원 확인·체크한 것은 지금은 이 휴대폰에만 저장돼요. 나중에 로그인이 생기면 선생님과 함께 볼 수 있게 옮겨 드려요.
           </p>
           <button
             type="button"

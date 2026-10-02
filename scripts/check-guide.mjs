@@ -27,7 +27,7 @@ walk(DIR)
 const text = files.map((f) => fs.readFileSync(f, 'utf8')).join('\n')
 
 const errors = []
-for (const word of ['PBKDF2', 'deriveBits', 'roster-key', 'roster.enc']) if (text.includes(word)) errors.push(`복호화·명단 코드("${word}")가 들어 있다`)
+for (const word of ['PBKDF2', 'deriveBits', 'roster-key', 'roster.enc', 'field-photos', 'createObjectStore']) if (text.includes(word)) errors.push(`복호화·명단 코드("${word}")가 들어 있다`)
 const sealed = JSON.parse(fs.readFileSync(path.join(ROOT, 'content', 'roster.enc.json'), 'utf8'))
 for (let i = 0; i + 40 <= sealed.data.length; i += 40) {
   if (text.includes(sealed.data.slice(i, i + 40))) {

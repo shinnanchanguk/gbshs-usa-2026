@@ -5,7 +5,10 @@ import { photoUrl, videoUrl, type PhotoRef } from '../../content'
 import { Icon } from '../../components/Icon'
 
 /** 사진 크게 보기. 옆으로 밀거나 ←/→ 로 넘기고 Esc·닫기로 닫는다. 화면 전체를 덮어 장 넘기기와 겹치지 않는다. */
-export function Lightbox({ photos, start, onClose }: { photos: PhotoRef[]; start: number; onClose: () => void }) {
+/** 답사 사진(content 의 사진 키) 또는 학생이 올린 사진(src 에 기기 안 주소) */
+export type ViewPhoto = PhotoRef | { id: string; caption: string; src: string }
+
+export function Lightbox({ photos, start, onClose }: { photos: ViewPhoto[]; start: number; onClose: () => void }) {
   const [i, setI] = useState(start)
   const touch = useRef<{ x: number; y: number } | null>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -27,7 +30,8 @@ export function Lightbox({ photos, start, onClose }: { photos: PhotoRef[]; start
     }
   }, [photos.length, onClose])
 
-  const video = videoUrl(p.id)
+  const own = 'src' in p ? p.src : null
+  const video = own ? null : videoUrl(p.id)
   return createPortal(
     <div
       className="lightbox"
@@ -58,7 +62,7 @@ export function Lightbox({ photos, start, onClose }: { photos: PhotoRef[]; start
         {video ? (
           <video key={p.id} src={video} poster={photoUrl(p.id) ?? undefined} controls playsInline preload="metadata" />
         ) : (
-          <img key={p.id} src={photoUrl(p.id) ?? ''} alt={p.caption} />
+          <img key={p.id} src={own ?? photoUrl(p.id) ?? ''} alt={p.caption} />
         )}
       </div>
       <div className="lightbox__bottom">

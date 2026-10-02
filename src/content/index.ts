@@ -192,3 +192,9 @@ export const KIND_LABEL: Record<Slide['kind'], string> = {
 
 export const hotelById = new Map(trip.hotels.map((h) => [h.id, h]))
 export const themeById = new Map(trip.themes.map((t) => [t.id, t]))
+
+/** 학생이 그 장소에서 사진과 메모(느낀 점)를 남길 수 있는 장: 느낀 점 장, 그리고 대학·특강·견학·식사·쇼핑 장소 */
+const RECORD_KINDS: Slide['kind'][] = ['campus', 'lecture', 'culture', 'meal', 'shopping']
+export function canRecord(p: SlidePage): boolean {
+  return p.slide.reflect || (!!p.slide.place && RECORD_KINDS.includes(p.slide.kind))
+}

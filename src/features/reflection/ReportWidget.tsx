@@ -7,6 +7,8 @@ import { useMyReflections } from '../../lib/repo'
 import { copyText } from '../../lib/clipboard'
 import { goTo } from '../../lib/router'
 import { dateLabel } from '../../lib/time'
+import { ChildRecordList } from '../record/ChildRecord'
+import { GUIDE } from '../../lib/edition'
 
 /**
  * 발표회 보고서 초안. 장마다 쓴 느낀 점을 활동 주제별로 모아 보여 주고, 주제마다 한 가지 이상 채웠는지 알려 준다.
@@ -40,6 +42,7 @@ export function ReportWidget() {
     .join('\n')
     .trim()
 
+  if (!GUIDE && profile?.role === 'parent') return <ChildRecordList />
   if (profile?.role && profile.role !== 'student') {
     return (
       <p className="hint">
