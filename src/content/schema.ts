@@ -67,6 +67,7 @@ export const Source = z.enum([
   'waiver', // 2026. 9. 30. 면책·의료 동의서 설명 녹음과 안내 PDF
   'roster', // 버스 좌석표·객실 배치도 엑셀(이름은 공개 화면에 넣지 않음)
   'mentor', // MIT 멘토 정보 엑셀·교사 카톡(이름은 공개 화면에 넣지 않음)
+  'feedback', // 2026. 10. 1. 인솔 교사 카톡 피드백(3차 자료, 이름은 적지 않음)
 ])
 
 export const ThemeId = z.enum(['campus', 'lecture', 'research', 'lab', 'global', 'arts', 'english', 'science'])
