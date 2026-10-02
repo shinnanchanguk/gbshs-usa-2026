@@ -115,6 +115,11 @@ img {
   margin: 0 0.18em;
 }
 
+/* 날짜(10/12, 10/12(월))는 화면 폭과 상관없이 한 줄로 둔다 */
+.nowrap {
+  white-space: nowrap;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1762,6 +1767,7 @@ img {
 .cover__day-date {
   color: var(--muted);
   font-size: var(--fs-xs);
+  white-space: nowrap;
 }
 
 .cover__day-title {
@@ -1816,7 +1822,7 @@ img {
 
 .deadline {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: var(--s-3);
   padding: var(--s-3) 0;
   border-bottom: 1px dashed var(--line);
@@ -1830,12 +1836,15 @@ img {
   color: var(--accent-ink);
 }
 
+/* "10/12" 다섯 글자가 어떤 휴대폰에서도 한 줄에 들어가게: 칸은 날짜 다섯 글자 폭, 글자는 화면 폭에 맞춰 줄인다 */
 .deadline__date {
   display: flex;
   flex-direction: column;
-  font-size: var(--fs-lg);
+  min-width: 5ch;
+  font-size: clamp(0.875rem, 4.4vw, var(--fs-lg));
   font-weight: 700;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .deadline__wd {
@@ -2711,6 +2720,146 @@ button.seat[data-present='true'] .seat__no {
   color: var(--muted);
 }
 
+/* 현장 기록 안의 작은 제목(느낀 점·메모). 사진과 같은 카드 안에서 글자 굵기로만 나눈다 */
+.reflect__sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: var(--s-4) 0 var(--s-2);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+}
+
+.reflect__sub .icon {
+  color: var(--muted);
+}
+
+/* 보호자가 보는 아이 기록: 쓰는 칸이 아니라 읽는 글 */
+.reflect--read {
+  border-width: 1px;
+  border-color: var(--line-2);
+}
+
+.reflect__memo {
+  margin-top: var(--s-3);
+  font-size: var(--fs-base);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+/* 학생이 올린 사진: 한 줄에 셋, 정사각형 */
+.fphotos__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fphotos__item {
+  position: relative;
+}
+
+.fphotos__thumb,
+.fphotos__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.fphotos__thumb {
+  background: var(--paper-2);
+  color: var(--muted);
+}
+
+.fphotos__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fphotos__add {
+  flex-direction: column;
+  gap: 4px;
+  border: 1.5px dashed var(--line-2);
+  background: var(--paper);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fphotos__add:hover,
+.fphotos__add:focus-within {
+  border-color: var(--ink);
+}
+
+.fphotos__add:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.fphotos__add[data-busy] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.fphotos__remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-pill);
+  background: rgba(17, 17, 17, 0.66);
+  color: #fff;
+}
+
+.fphotos__hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.fphotos__hint .icon {
+  margin-top: 3px;
+  flex: none;
+}
+
+/* 보호자 「발표회 보고서」 장: 장소마다 아이 기록 한 덩어리 */
+.childrec {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.childrec__item {
+  padding: var(--s-3) 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.childrec__where {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: var(--s-2);
+  font-weight: 800;
+  text-align: left;
+}
+
 .report {
   margin: var(--s-4) 0;
   display: grid;
@@ -3463,6 +3612,7 @@ button.seat[data-present='true'] .seat__no {
 .sched__date {
   font-size: var(--fs-xs);
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .sched__title {

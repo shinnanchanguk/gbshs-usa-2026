@@ -42,7 +42,12 @@ export function RoomsWidget() {
             <div className="hotel__body">
               <h3 className="hotel__name">{h.name}</h3>
               <p className="hotel__nights mono">
-                {h.nights.map((n) => dateLabel(n)).join(' · ')} · {h.nights.length}박
+                {h.nights.map((n) => (
+                  <span key={n} className="nowrap">
+                    {dateLabel(n)} ·{' '}
+                  </span>
+                ))}
+                {h.nights.length}박
               </p>
               <p className="hotel__addr">{h.address}</p>
               <a className="link" href={`tel:${h.phone.replace(/[^+\d]/g, '')}`}>

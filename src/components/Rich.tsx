@@ -1,13 +1,31 @@
 import { Fragment, type ReactNode } from 'react'
 import { Icon } from './Icon'
 
+/** "10/12", "10/12(월)", "2026. 11. 3.(화)" 같은 날짜. 화면 폭이 좁아도 날짜 한가운데서 줄이 바뀌지 않게 묶는다. */
+const DATE = /(\d{4}\. \d{1,2}\. \d{1,2}\.(?:\([월화수목금토일]\))?|\d{1,2}\/\d{1,2}(?:\([월화수목금토일]\))?)/g
+
+function dates(text: string): ReactNode {
+  DATE.lastIndex = 0
+  if (!DATE.test(text)) return text
+  return text.split(DATE).map((p, i) =>
+    i % 2 === 1 ? (
+      <span key={i} className="nowrap">
+        {p}
+      </span>
+    ) : (
+      p
+    ),
+  )
+}
+
 /**
  * 안내 글 속 화살표(→)를 문자 대신 SVG 화살표로 그린다(화면 기호는 SVG 만 쓴다).
  * 내용 JSON 은 사람이 읽고 고치기 쉽게 "인천 → 뉴욕" 처럼 두고, 화면에 낼 때만 바꾼다.
+ * 날짜는 한 덩어리로 묶어 줄이 날짜 중간에서 바뀌지 않게 한다.
  */
 export function rich(text: string | undefined | null): ReactNode {
   if (!text) return text
-  if (!text.includes('→')) return text
+  if (!text.includes('→')) return dates(text)
   const parts = text.split('→')
   return parts.map((p, i) => (
     <Fragment key={i}>
@@ -17,7 +35,7 @@ export function rich(text: string | undefined | null): ReactNode {
           <span className="sr-only">에서 </span>
         </>
       ) : null}
-      {i > 0 ? p.replace(/^\s+/, '') : p.replace(/\s+$/, '')}
+      {dates(i > 0 ? p.replace(/^\s+/, '') : p.replace(/\s+$/, ''))}
     </Fragment>
   ))
 }
