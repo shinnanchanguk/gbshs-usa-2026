@@ -116,6 +116,10 @@ img {
 }
 
 /* 날짜(10/12, 10/12(월))는 화면 폭과 상관없이 한 줄로 둔다 */
+.rich {
+  min-width: 0;
+}
+
 .nowrap {
   white-space: nowrap;
 }
@@ -1371,6 +1375,8 @@ img {
 }
 
 .next-card__title .mono {
+  flex: none;
+  white-space: nowrap;
   color: var(--accent-ink);
 }
 
