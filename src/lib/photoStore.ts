@@ -45,15 +45,19 @@ function run<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<
   )
 }
 
-/** 저장에 성공하면 true. 기기 저장이 막혀 메모리에만 뒀으면 false */
-export async function putPhoto(id: string, blob: Blob): Promise<boolean> {
+/**
+ * 'saved' 면 기기에 저장됨. 'full' 은 휴대폰 저장 공간이 모자라 저장하지 못함(메모리에도 두지 않음).
+ * 'memory' 는 이 브라우저가 기기 저장을 막아(일부 사생활 보호 모드) 이번에 연 동안만 메모리에 둠.
+ */
+export async function putPhoto(id: string, blob: Blob): Promise<'saved' | 'full' | 'memory'> {
   try {
     await run('readwrite', (s) => s.put(blob, id))
     memory.delete(id)
-    return true
-  } catch {
+    return 'saved'
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'QuotaExceededError') return 'full'
     memory.set(id, blob)
-    return false
+    return 'memory'
   }
 }
 
@@ -90,13 +94,17 @@ const MAX_EDGE = 1600
 const QUALITY = 0.82
 /** 이보다 큰 원본은 받지 않는다(휴대폰 사진은 보통 3~10MB) */
 export const PHOTO_INPUT_MAX = 40 * 1024 * 1024
+/** 사진 형식만 받는다(SVG 같은 그림 문서는 받지 않음) */
+const PHOTO_TYPES = /^image\/(jpeg|png|webp|heic|heif|gif|avif)$/
+/** 이보다 픽셀이 많은 그림은 열다가 탭이 멈출 수 있어 받지 않는다(휴대폰 사진은 1,200만~5,000만 화소) */
+const PHOTO_PIXEL_MAX = 120_000_000
 
 /**
  * 휴대폰 사진을 화면 크기로 줄여 JPEG 로 다시 만든다. 다시 그리면서 촬영 위치(GPS) 같은 EXIF 정보가 빠진다.
  * 사진을 열 수 없으면(이미지가 아님, 이 브라우저가 못 읽는 형식) null.
  */
 export async function shrinkPhoto(file: Blob): Promise<{ blob: Blob; w: number; h: number } | null> {
-  if (!file.type.startsWith('image/') || file.size > PHOTO_INPUT_MAX) return null
+  if (!PHOTO_TYPES.test(file.type) || file.size > PHOTO_INPUT_MAX) return null
   const url = URL.createObjectURL(file)
   try {
     const img = new Image()
@@ -106,7 +114,7 @@ export async function shrinkPhoto(file: Blob): Promise<{ blob: Blob; w: number; 
     // 브라우저가 EXIF 방향을 반영한 크기를 준다(세로로 찍은 사진이 눕지 않게)
     const w0 = img.naturalWidth
     const h0 = img.naturalHeight
-    if (!w0 || !h0) return null
+    if (!w0 || !h0 || w0 * h0 > PHOTO_PIXEL_MAX) return null
     const scale = Math.min(1, MAX_EDGE / Math.max(w0, h0))
     const w = Math.max(1, Math.round(w0 * scale))
     const h = Math.max(1, Math.round(h0 * scale))

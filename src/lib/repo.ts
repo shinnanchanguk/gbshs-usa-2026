@@ -118,7 +118,7 @@ export type StudentReflections = { studentId: string; book: ReflectionBook }
 
 /**
  * 선생님 화면에서 모아 보는 학생들의 느낀 점.
- * 지금은 DB가 없어 이 기기에 저장된 것만 모인다. DB를 붙이면 여기서 서버의 전체 학생 느낀 점을 읽는다(읽기는 로그인한 선생님만).
+ * 지금은 DB가 없어 이 기기에 저장된 것만 모인다. DB를 붙이면 여기서 서버의 전체 학생 느낀 점을 읽는다(전체 읽기는 로그인한 인솔 선생님만. 학생 본인과, 서버가 연결해 둔 그 학생의 보호자는 자기 것만).
  */
 export function useClassReflections(): StudentReflections[] {
   const [raw] = useStored<unknown>('reflections', {})
@@ -294,10 +294,14 @@ function photosOf(raw: unknown, studentId: string): Record<string, FieldPhoto[]>
  * 학생이 장소마다 올린 사진. 학생 본인은 올리고 지우고, 보호자 화면은 자녀 것을 읽기만 한다.
  * 지금은 이 기기에만 있어서 보호자는 아이 휴대폰으로 봐야 한다.
  *
- * DB를 붙일 때 지킬 것:
- * - 사진 바이트는 오브젝트 스토리지에 두고 DB 에는 (student_id, page_key, 주소, 크기)만 둔다.
+ * DB를 붙일 때 지킬 것(미성년자 얼굴 사진이다):
+ * - 사진 바이트는 비공개 오브젝트 스토리지에 두고, 화면에는 몇 분짜리 서명 주소만 내려 준다. 영구 공개 주소를 만들지 않는다.
+ *   오브젝트 키는 무작위로(학번·이름을 넣지 않음). DB 에는 (student_id, page_key, 오브젝트 키, 크기)만 둔다.
  * - 올리기·지우기는 그 학생 계정만, 읽기는 그 학생·그 학생의 보호자 계정·인솔 선생님만 허용한다. 학번은 로그인한 계정에서 정한다.
- * - 서버에서도 장소당 장수(FIELD_PHOTO_MAX)와 한 장 크기를 확인하고, 받은 사진을 다시 줄여 EXIF(GPS)를 지운다.
+ * - 보호자와 학생의 연결은 선생님·관리자가 등록한 서버 쪽 표로만 정한다. 지금 화면처럼 보호자가 고른 학번을 믿으면 남의 아이 기록을 읽게 된다.
+ * - 장소당 장수(FIELD_PHOTO_MAX)는 트랜잭션이나 DB 제약으로 지키고, page_key 는 콘텐츠에 있는 장 key 만 받는다.
+ * - 서버에서 형식(매직 바이트, SVG 거부)·픽셀 수·크기를 확인하고 다시 줄여 EXIF(GPS)를 지운다.
+ * - 지우면 DB 행과 저장 파일을 함께 지우고, 여행이 끝난 뒤 보관 기간(예: 학기 말 일괄 삭제)을 정한다.
  */
 export function useFieldPhotos(studentId: string | undefined) {
   const [raw, setRaw] = useStored<unknown>('field-photos', {})

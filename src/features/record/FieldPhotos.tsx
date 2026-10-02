@@ -68,6 +68,7 @@ export function FieldPhotos({ page, studentId, readOnly = false }: { page: Slide
     let added = 0
     let failed = 0
     let memoryOnly = false
+    let full = false
     for (const f of take) {
       const small = await shrinkPhoto(f)
       if (!small) {
@@ -76,7 +77,11 @@ export function FieldPhotos({ page, studentId, readOnly = false }: { page: Slide
       }
       const id = newPhotoId()
       const kept = await putPhoto(id, small.blob)
-      if (!kept) memoryOnly = true
+      if (kept === 'full') {
+        full = true
+        break
+      }
+      if (kept === 'memory') memoryOnly = true
       if (add(page.key, { id, w: small.w, h: small.h, at: new Date().toISOString() })) added++
       else await deletePhoto(id) // 목록에 못 넣었으면(다른 창에서 먼저 5장이 참) 바이트도 지운다
     }
@@ -85,6 +90,7 @@ export function FieldPhotos({ page, studentId, readOnly = false }: { page: Slide
     if (added) notes.push(`사진 ${added}장을 이 휴대폰에 저장했어요.`)
     if (failed) notes.push(`${failed}장은 열 수 없는 사진이라 올리지 못했어요.`)
     if (picked.length > take.length) notes.push(`한 장소에 ${FIELD_PHOTO_MAX}장까지 올릴 수 있어요.`)
+    if (full) notes.push('휴대폰 저장 공간이 모자라요. 사진 앱에서 공간을 비운 뒤 다시 올려 주세요.')
     if (memoryOnly) notes.push('이 브라우저는 사진을 저장하지 못해 창을 닫으면 사라져요. 사파리나 크롬 일반 창으로 열어 주세요.')
     setMsg(notes.join(' ') || null)
   }
@@ -140,7 +146,7 @@ export function FieldPhotos({ page, studentId, readOnly = false }: { page: Slide
       </ul>
       {readOnly ? null : (
         <p className="reflect__status" aria-live="polite">
-          {msg ?? `이곳에서 찍은 사진을 ${FIELD_PHOTO_MAX}장까지 올릴 수 있어요. 지금은 이 휴대폰에만 저장돼요.`}
+          {msg ?? `이곳에서 찍은 사진을 ${FIELD_PHOTO_MAX}장까지 올릴 수 있어요. 사진과 메모는 보호자 화면에서도 보여요.`}
         </p>
       )}
       {open && shown.some((p) => p.id === open) ? (
