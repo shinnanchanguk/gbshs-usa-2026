@@ -42,6 +42,7 @@ function profileFromZudo(me: ZudoMe, roster: Roster): Profile {
 function zudoNotice(e: unknown): string {
   if (e instanceof ZudoError && e.status === 403) return '이 ZUDO 계정으로는 체험학습 안내를 열 수 없어요. 1학년 학생, 인증을 마친 1학년 보호자, 인솔 선생님만 들어올 수 있어요.'
   if (e instanceof ZudoError && e.status === 400) return 'ZUDO에서 넘어온 지 오래됐어요. ZUDO에서 다시 눌러 주세요.'
+  if (e instanceof ZudoError && e.status >= 500) return 'ZUDO가 잠깐 답하지 않아요. 조금 뒤 ZUDO에서 다시 눌러 주세요.'
   return 'ZUDO와 연결하지 못했어요. 인터넷을 확인하고 ZUDO에서 다시 눌러 주세요.'
 }
 
@@ -96,10 +97,22 @@ function FullApp() {
       const session = readZudoSession()
       if (!r && session?.me.rosterCode) r = await unlock(session.me.rosterCode)
       if (!alive) return
+      // ZUDO 로 들어온 기기는 학생·보호자 정보를 늘 ZUDO 가 정한 대로 맞춘다(선생님은 고른 화면을 그대로 둔다)
+      const sync = (me: ZudoMe, roster: Roster) => {
+        const prev = readStored<Profile | null>('profile', null)
+        if (me.role !== 'teacher' || !prev?.fromZudo) writeStored('profile', profileFromZudo(me, roster))
+      }
+      if (r && session && !link.code) sync(session.me, r)
       if (r && !link.code) setRoster(r)
       setChecked(true)
-      // ZUDO 로 들어온 기기는 인터넷이 될 때 자녀·역할을 최신으로 맞춘다
-      if (session && !link.zudo) void refreshZudoMe()
+      // 인터넷이 될 때 자녀·역할을 최신으로 맞춘다
+      if (session && !link.zudo && r && !link.code) {
+        const opened = r
+        void refreshZudoMe().then(() => {
+          const fresh = readZudoSession()
+          if (alive && fresh) sync(fresh.me, opened)
+        })
+      }
     }
     void open()
     return () => {

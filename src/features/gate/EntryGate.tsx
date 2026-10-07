@@ -23,6 +23,10 @@ export function EntryGate({
   const [open, setOpen] = useState(false)
   const tried = useRef(false)
   const input = useRef<HTMLInputElement>(null)
+  // 홈 화면에 추가한 앱으로 열었는지. 아이폰은 이 앱과 사파리의 저장 공간이 따로라 ZUDO 로그인이 사파리에 남는다.
+  const standalone =
+    typeof window !== 'undefined' &&
+    (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true)
 
   async function submit(value: string) {
     const v = normalizeCode(value)
@@ -72,6 +76,11 @@ export function EntryGate({
           <p className="gate__help">
             ZUDO에 로그인하면 내 자리·방·항공권이 바로 열려요. 한 번 들어오면 이 기기에서는 다시 묻지 않아요.
           </p>
+          {standalone ? (
+            <p className="gate__help">
+              홈 화면에 둔 앱으로 열었다면 로그인이 사파리(또는 크롬)에서 열려요. 그 브라우저에서 이 안내를 계속 쓰면 돼요.
+            </p>
+          ) : null}
 
           <button type="button" className="gate__more" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
             <Icon name="lock" size="0.95rem" /> 선생님께 받은 코드로 열기
@@ -96,7 +105,9 @@ export function EntryGate({
                 spellCheck={false}
                 value={code}
                 onChange={(e) => {
-                  setCode(normalizeCode(e.target.value))
+                  // 받은 링크를 통째로 붙여 넣어도 # 뒤의 코드만 쓴다
+                  const fromLink = e.target.value.match(/#\/code\/([A-Za-z0-9-]+)/)?.[1]
+                  setCode(normalizeCode(fromLink ?? e.target.value))
                   setState('idle')
                 }}
                 aria-invalid={state === 'wrong'}

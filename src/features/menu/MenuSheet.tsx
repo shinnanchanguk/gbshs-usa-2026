@@ -57,7 +57,7 @@ export function MenuSheet({
       <div className="menu">
         {GUIDE ? null : locked ? (
         <section className="whopick zudo-me">
-          <h3 className="whopick__title">ZUDO로 들어왔어요</h3>
+          <h3 className="whopick__title">ZUDO로 로그인했어요</h3>
           <p className="zudo-me__who">
             <Icon name={role === 'parent' ? 'shield' : 'user'} />
             {role === 'parent' ? `${zudo!.me.name} 보호자` : me ? `${me.classNo}반 ${me.no}번 ${me.name}` : zudo!.me.name}
@@ -233,7 +233,7 @@ export function MenuSheet({
               onLock()
             }}
           >
-            <Icon name="lock" size="1rem" /> 이 기기에서 잠그기(다시 ZUDO로 들어오기)
+            <Icon name="lock" size="1rem" /> 이 기기에서 잠그기(다시 ZUDO로 로그인)
           </button>
           </>
         )}

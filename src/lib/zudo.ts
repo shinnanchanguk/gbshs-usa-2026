@@ -108,7 +108,11 @@ export async function zudoFetch(path: string, init: RequestInit = {}): Promise<R
     cache: 'no-store',
     credentials: 'omit',
   })
-  if (res.status === 401) forgetZudoSession()
+  // 토큰이 정말 끊긴 때(401 unauthorized)만 이 기기의 로그인을 지운다. 서버가 잠깐 안 되는 것(503)으로는 지우지 않는다.
+  if (res.status === 401) {
+    const body = (await res.clone().json().catch(() => ({}))) as { error?: string }
+    if (body.error === 'unauthorized') forgetZudoSession()
+  }
   return res
 }
 

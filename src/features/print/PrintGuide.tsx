@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { days, hotelById, trip } from '../../content'
 import { dateLabel } from '../../lib/time'
+import { rich } from '../../components/Rich'
 import { WAKE_DAYS, WAKE_LEAD_MIN, minus } from '../wake/schedule'
 import './print.css'
 
@@ -61,7 +62,7 @@ export function PrintGuide() {
           ))}
           {trip.flights.map((f) => (
             <li key={f.id}>
-              <strong>{f.code}</strong> {f.from} → {f.to} · 출발 {f.depart} · 도착 {f.arrive} · {f.duration}
+              <strong>{f.code}</strong> {rich(`${f.from} → ${f.to}`)} · 출발 {f.depart} · 도착 {f.arrive} · {f.duration}
             </li>
           ))}
         </ul>
@@ -99,10 +100,10 @@ export function PrintGuide() {
           return (
             <section key={d.n} className="print__day">
               <h2>
-                {d.n}일차 {d.date ? dateLabel(d.date, d.weekday) : ''} · {d.region}
+                {d.n}일차 {d.date ? dateLabel(d.date, d.weekday) : ''} · {rich(d.region)}
               </h2>
               <p className="print__muted">
-                {d.title}
+                {rich(d.title)}
                 {hotel ? ` · 숙소 ${hotel.name}` : ''}
                 {d.meals ? ` · 아침 ${d.meals.breakfast ?? '-'} · 점심 ${d.meals.lunch ?? '-'} · 저녁 ${d.meals.dinner ?? '-'}` : ''}
               </p>
@@ -114,7 +115,7 @@ export function PrintGuide() {
                         {s.time ? `${s.time.start}${s.time.end ? `–${s.time.end}` : ''}${s.time.tz === 'KST' ? ' 한국' : ''}` : ''}
                       </td>
                       <td>
-                        <strong>{s.title}</strong>
+                        <strong>{rich(s.title)}</strong>
                         {s.optional ? <span className="print__muted"> (선택)</span> : null}
                         {s.place?.address ? (
                           <>

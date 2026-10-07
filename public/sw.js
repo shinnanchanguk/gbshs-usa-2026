@@ -81,7 +81,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin === self.location.origin) {
     if (url.pathname.includes('/assets/')) event.respondWith(cacheFirst(req, ASSETS))
     // 오프라인 안내 PDF: 새로 받을 수 있으면 새것을, 안 되면 저장해 둔 것을 쓴다(내용이 바뀔 수 있어서)
-    else if (url.pathname.includes('/offline/')) event.respondWith(fetch(req).then((res) => { if (res.ok) { const copy = res.clone(); caches.open(OFFLINE).then((c) => c.put(req, copy)) } return res }).catch(() => caches.match(req).then((r) => r || Response.error())))
+    else if (url.pathname.includes('/offline/')) event.respondWith(fetch(req).then((res) => { if (res.ok) { const copy = res.clone(); event.waitUntil(caches.open(OFFLINE).then((c) => c.put(req, copy))) } return res }).catch(() => caches.match(req).then((r) => r || Response.error())))
     else if (url.pathname.includes('/photos/')) event.respondWith(cacheFirst(req, PHOTOS))
     return
   }

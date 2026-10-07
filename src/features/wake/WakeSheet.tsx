@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { Sheet } from '../../components/Sheet'
 import { useApp } from '../../app/context'
@@ -23,7 +23,13 @@ export function WakeSheet({ onClose }: { onClose: () => void }) {
   const [date, setDate] = useState(() => defaultWakeDate(clock(at, 'EDT').ymd))
   const [checks, setChecks] = useState<Record<string, Check>>({})
   const [helpers, setHelpers] = useState<Helper[]>([])
+  const [serverRooms, setServerRooms] = useState<string[] | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'offline' | 'denied'>('loading')
+  /** 마지막으로 잘 받은 뒤 연결이 끊겼으면 true(목록은 그대로 두고 한 줄만 알린다) */
+  const [stale, setStale] = useState(false)
+  // 늦게 도착한 응답(다른 날짜, 또는 내가 누르기 전에 떠난 요청)이 화면을 되돌리지 않게
+  const seq = useRef(0)
+  const lastMark = useRef(0)
   const [saving, setSaving] = useState<string | null>(null)
   const [error, setError] = useState('')
 
@@ -32,30 +38,44 @@ export function WakeSheet({ onClose }: { onClose: () => void }) {
   const overdue = at.getTime() >= instant(date, deadline).getTime()
 
   const load = useCallback(async () => {
+    const mine = ++seq.current
+    const startedAt = Date.now()
+    const fail = () => {
+      if (mine !== seq.current) return
+      setStale(true)
+      setState((s) => (s === 'ready' ? s : 'offline'))
+    }
     try {
       const res = await zudoFetch(`/api/trip/wake?date=${date}`)
+      if (mine !== seq.current) return
       if (res.status === 403 || res.status === 401) return setState('denied')
-      if (!res.ok) return setState('offline')
-      const body = (await res.json()) as { checks: Check[]; helpers?: Helper[] }
+      if (!res.ok) return fail()
+      const body = (await res.json()) as { checks: Check[]; helpers?: Helper[]; rooms?: string[] }
+      if (mine !== seq.current || startedAt < lastMark.current) return
       setChecks(Object.fromEntries(body.checks.map((c) => [c.room, c])))
       setHelpers(body.helpers ?? [])
+      setServerRooms(body.rooms ?? null)
+      setStale(false)
       setState('ready')
     } catch {
-      setState('offline')
+      fail()
     }
   }, [date])
 
   useEffect(() => {
     setState('loading')
+    setChecks({})
+    setStale(false)
     void load()
     const id = window.setInterval(() => void load(), 20_000)
     return () => window.clearInterval(id)
   }, [load])
 
-  const myRooms = useMemo(() => (isTeacher ? [] : expandRooms(me?.wakeupRooms)), [isTeacher, me])
+  // 기상 도우미가 맡은 방은 ZUDO 가 정한 목록이 기준이다(권한도 그것으로 판정한다). 못 받았을 때만 명단으로 짐작한다.
+  const myRooms = useMemo(() => (isTeacher ? [] : (serverRooms ?? expandRooms(me?.wakeupRooms))), [isTeacher, me, serverRooms])
   const allRooms = useMemo(() => {
     const set = new Set(roster.students.map((s) => s.room).filter(Boolean))
-    return [...set].sort((a, b) => a.localeCompare(b, 'ko') || Number(a.slice(2)) - Number(b.slice(2)))
+    return [...set].sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }))
   }, [roster])
   const rooms = isTeacher ? allRooms : myRooms
   const occupants = (room: string) => roster.students.filter((s) => s.room === room).sort((a, b) => a.id.localeCompare(b.id))
@@ -72,12 +92,17 @@ export function WakeSheet({ onClose }: { onClose: () => void }) {
     const next = checks[room]?.status === status ? null : status
     setSaving(room)
     setError('')
+    lastMark.current = Date.now()
     try {
       const res = await zudoFetch('/api/trip/wake', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date, room, status: next }),
       })
+      if (res.status === 403) {
+        setError('이 방은 내가 맡은 방이 아니에요. 담임 선생님께 확인해 주세요.')
+        return
+      }
       if (!res.ok) throw new Error(String(res.status))
       setChecks((prev) => {
         const copy = { ...prev }
@@ -109,6 +134,7 @@ export function WakeSheet({ onClose }: { onClose: () => void }) {
 
         {state === 'denied' ? <p className="fineprint">기상 도우미와 인솔 선생님만 볼 수 있어요. ZUDO로 다시 들어와 주세요.</p> : null}
         {state === 'offline' ? <p className="gate__error">인터넷이 안 돼서 불러오지 못했어요. 호텔 와이파이에 연결한 뒤 다시 열어 주세요.</p> : null}
+        {state === 'ready' && stale ? <p className="fineprint">연결이 잠깐 끊겼어요. 마지막으로 받은 현황을 보여 주고 있어요.</p> : null}
         {state === 'loading' ? <p className="fineprint">불러오는 중이에요.</p> : null}
 
         {state === 'ready' ? (

@@ -7,16 +7,18 @@ import { downloadTicket, getTicket, savedTicket } from '../../lib/ticketStore'
 import { useZudoSession, ZUDO_HANDOFF_URL, ZudoError } from '../../lib/zudo'
 
 /** 받은 PDF 를 새 탭에서 연다. 기다리는 동안 막히지 않게 창을 먼저 연다. */
-function openBlob(blob: Blob, win: Window | null) {
+function openBlob(blob: Blob, win: Window | null, name: string) {
+  // 새 창을 못 열었으면(홈 화면 앱 등) 이 화면을 PDF 로 바꾸지 않고 파일로 내려받게 한다(돌아올 길이 없어지지 않게)
+  if (!win) return saveBlob(blob, name)
   const url = URL.createObjectURL(blob)
-  if (win) win.location.href = url
-  else window.location.href = url
+  win.location.href = url
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 function message(e: unknown): string {
   if (e instanceof ZudoError && e.status === 404) return '아직 항공권 파일이 올라오지 않았어요. 담임 선생님께 알려 주세요.'
-  if (e instanceof ZudoError && (e.status === 401 || e.status === 403)) return 'ZUDO로 다시 들어와 주세요.'
+  if (e instanceof ZudoError && (e.status === 401 || e.status === 403)) return 'ZUDO로 다시 로그인해 주세요.'
+  if (e instanceof ZudoError && e.status >= 500) return 'ZUDO가 잠깐 답하지 않아요. 조금 뒤 다시 눌러 주세요. 이 기기에 저장된 항공권은 그대로 열려요.'
   return '인터넷이 안 돼서 받지 못했어요. 한 번 받아 두면 다음부터는 인터넷 없이 열려요.'
 }
 
@@ -67,7 +69,7 @@ export function TicketWidget() {
     try {
       const blob = await getTicket(target)
       setSaved(true)
-      openBlob(blob, win)
+      openBlob(blob, win, name)
     } catch (e) {
       win?.close()
       setError(message(e))
@@ -80,7 +82,12 @@ export function TicketWidget() {
     setBusy(true)
     setError('')
     try {
-      const blob = saved ? await getTicket(target) : await downloadTicket(target)
+      // 인터넷이 되면 새로 받아(선생님이 고쳐 올렸을 수 있다) 저장하고, 안 되면 저장해 둔 것을 쓴다
+      const blob = await downloadTicket(target).catch(async (e) => {
+        const kept = await getTicket(target).catch(() => null)
+        if (kept && saved) return kept
+        throw e
+      })
       setSaved(true)
       saveBlob(blob, name)
     } catch (e) {
