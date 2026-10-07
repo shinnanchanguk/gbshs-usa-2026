@@ -10,7 +10,7 @@ const CSP = [
   "img-src 'self' data: blob: https://tiles.openfreemap.org",
   "font-src 'self' data:",
   // ZUDO: 로그인 연동(/api/trip/session·me), 내 항공권, 기상 확인(src/lib/zudo.ts)
-  "connect-src 'self' https://tiles.openfreemap.org https://zudo.my",
+  "connect-src 'self' https://tiles.openfreemap.org https://www.zudo.my",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
   "media-src 'self'",
