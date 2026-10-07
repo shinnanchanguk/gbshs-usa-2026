@@ -2,14 +2,15 @@ import { defineConfig, type Plugin, type UserConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // 배포본에만 보안 정책(CSP)을 넣는다. 개발 서버는 HMR 인라인 스크립트가 있어 넣지 않는다.
-// GitHub Pages 는 응답 헤더를 못 바꾸므로 meta 로 둔다. 지도 타일·글꼴은 OpenFreeMap 에서만 받는다.
+// GitHub Pages 는 응답 헤더를 못 바꾸므로 meta 로 둔다. 지도 타일·글꼴은 OpenFreeMap 에서만 받는다. 서버 자료는 ZUDO 에서만 받는다.
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://tiles.openfreemap.org",
   "font-src 'self' data:",
-  "connect-src 'self' https://tiles.openfreemap.org",
+  // ZUDO: 로그인 연동(/api/trip/session·me), 내 항공권, 기상 확인(src/lib/zudo.ts)
+  "connect-src 'self' https://tiles.openfreemap.org https://zudo.my",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
   "media-src 'self'",

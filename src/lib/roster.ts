@@ -47,13 +47,14 @@ const b64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0))
 const toB64 = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf)))
 
 /**
- * 입장 코드 길이(숫자). scripts/seal-roster.mjs 의 CODE_LEN 과 같아야 한다.
- * 숫자 6자리는 공개된 암호문에 100만 가지를 다 넣어 보면 풀린다. 로그인이 붙기 전까지 쓰는 임시 잠금이다(2026-09-30 결정).
+ * 명단 열쇠(입장 코드)의 최소 길이. scripts/seal-roster.mjs 의 CODE_LEN 과 같아야 한다.
+ * 2026-10-07부터 사람이 치지 않는다: ZUDO 로 들어오면 서버가 열쇠를 넘겨주고(src/lib/zudo.ts),
+ * 비상용으로만 #/code/<열쇠> 링크를 쓴다. 그래서 무차별 대입이 안 되게 26자 무작위(영문 대문자·숫자)로 바꿨다.
  */
-export const CODE_LEN = 6
+export const CODE_LEN = 26
 
-/** 입력한 코드를 표준 모양으로: 숫자만 */
-export const normalizeCode = (raw: string) => raw.replace(/\D/g, '')
+/** 코드를 표준 모양으로: 영문·숫자만, 대문자로 */
+export const normalizeCode = (raw: string) => raw.replace(/[^0-9A-Za-z]/g, '').toUpperCase()
 
 async function deriveRaw(code: string): Promise<ArrayBuffer> {
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(normalizeCode(code)), 'PBKDF2', false, ['deriveBits'])

@@ -13,6 +13,7 @@ import { RoomsWidget } from '../roster/RoomsWidget'
 import { ContactsWidget } from './ContactsWidget'
 import { MentorsWidget } from './MentorsWidget'
 import { ReportWidget } from '../reflection/ReportWidget'
+import { TicketWidget } from '../ticket/TicketWidget'
 
 export function Widget({ name, page }: { name: WidgetName; page: SlidePage }) {
   switch (name) {
@@ -37,6 +38,8 @@ export function Widget({ name, page }: { name: WidgetName; page: SlidePage }) {
       return <MentorsWidget />
     case 'report':
       return <ReportWidget />
+    case 'ticket':
+      return GUIDE ? <LaterNote icon="plane" title="내 항공권" text="학생마다 왕복 항공권이 한 장씩 있어요. 출발 전에 ZUDO로 로그인하면 내 것만 보고 내려받을 수 있어요." /> : <TicketWidget />
     case 'rules':
       return <RulesBadge page={page} />
     default:

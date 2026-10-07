@@ -54,9 +54,9 @@ export const Leg = z.object({
  * 특수 화면. 일반 장(요약·할 일·유의사항)에 더해 그 자리에 전용 화면을 붙인다.
  * cover: 여행 표지 · checklist: 준비물 체크 · deadlines: 날짜별 할 일 · forms: 면책·의료 동의서 작성법
  * rules: 꼭 지킬 약속 · money: 돈과 결제 · bus: 버스 좌석 · rooms: 객실 · hotels: 숙소 3곳
- * contacts: 비상 연락처 · mentors: 멘토 전공 · report: 느낀 점 모아 보고서 쓰기
+ * contacts: 비상 연락처 · mentors: 멘토 전공 · report: 느낀 점 모아 보고서 쓰기 · ticket: 내 전자항공권(ZUDO)
  */
-export const Widget = z.enum(['cover', 'checklist', 'deadlines', 'forms', 'rules', 'money', 'bus', 'rooms', 'hotels', 'contacts', 'mentors', 'report'])
+export const Widget = z.enum(['cover', 'checklist', 'deadlines', 'forms', 'rules', 'money', 'bus', 'rooms', 'hotels', 'contacts', 'mentors', 'report', 'ticket'])
 
 /** 내용 출처 */
 export const Source = z.enum([

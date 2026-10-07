@@ -4,13 +4,13 @@
  *
  * 입력(레포 밖, .gitignore 의 private/):
  *   private/roster.json      이름·좌석·객실·연락처가 든 원본
- *   private/access-code.txt  입장 코드 숫자 6자리 (없으면 새로 만든다)
+ *   private/access-code.txt  명단 열쇠: 영문 대문자·숫자 26자 (없으면 새로 만든다)
  * 출력(공개, 커밋):
  *   content/roster.enc.json  PBKDF2-SHA256(60만 번) + AES-256-GCM 암호문
  *
  * 원본이 바뀌지 않았으면 암호문을 다시 만들지 않는다(커밋 차이가 생기지 않게).
- * 코드를 바꾸려면 private/access-code.txt 에 새 숫자 6자리를 적거나(지우면 새로 만든다) 다시 실행한다.
- * 이전 코드로 저장한 기기는 다시 입력해야 한다.
+ * 열쇠를 바꾸려면 private/access-code.txt 를 지우고 다시 실행한 뒤, 같은 값을 ZUDO 의 TRIP_ROSTER_CODE 환경변수에도 넣는다.
+ * ZUDO 로 들어온 기기는 다시 봉해도 ZUDO 가 준 열쇠로 저절로 다시 연다(src/app/App.tsx).
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -21,8 +21,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const P = (p) => path.join(ROOT, p)
 const ITER = 600_000
 // src/lib/roster.ts 의 CODE_LEN 과 같아야 한다.
-// 숫자 6자리는 공개 암호문에 100만 가지를 다 넣어 보면 풀린다. 로그인이 붙기 전까지 쓰는 임시 잠금이다(2026-09-30 결정).
-const CODE_LEN = 6
+// 2026-10-07: 사람이 치지 않고 ZUDO 가 넘겨주므로 무차별 대입이 안 되는 26자 무작위(32가지 글자, 약 130비트)로 바꿨다.
+const CODE_LEN = 26
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
 if (!fs.existsSync(P('private/roster.json'))) {
   console.error('private/roster.json 이 없습니다. 레포 밖 원본(엑셀)에서 명단을 먼저 만드세요.')
@@ -31,16 +32,16 @@ if (!fs.existsSync(P('private/roster.json'))) {
 
 let code = fs.existsSync(P('private/access-code.txt')) ? fs.readFileSync(P('private/access-code.txt'), 'utf8').trim() : ''
 if (!code) {
-  code = Array.from({ length: CODE_LEN }, () => randomInt(10)).join('')
+  code = Array.from({ length: CODE_LEN }, () => ALPHABET[randomInt(ALPHABET.length)]).join('')
   fs.writeFileSync(P('private/access-code.txt'), code + '\n', { mode: 0o600 })
-  console.log('새 입장 코드를 private/access-code.txt 에 저장했습니다.')
+  console.log('새 명단 열쇠를 private/access-code.txt 에 저장했습니다. ZUDO 의 TRIP_ROSTER_CODE 도 같은 값으로 바꾸세요.')
 }
-// 숫자 3자리 + (빈칸이나 - 하나) + 숫자 3자리만 받는다. 다른 글자가 섞인 값을 조용히 잘라 쓰지 않는다.
-if (!/^\d{3}[ -]?\d{3}$/.test(code)) {
-  console.error(`private/access-code.txt 의 입장 코드는 숫자 ${CODE_LEN}자리여야 합니다.`)
+// 영문 대문자·숫자 26자만 받는다. 다른 글자가 섞인 값을 조용히 잘라 쓰지 않는다(화면의 normalizeCode 와 같은 모양).
+if (!new RegExp(`^[0-9A-Z]{${CODE_LEN}}$`).test(code)) {
+  console.error(`private/access-code.txt 의 명단 열쇠는 영문 대문자·숫자 ${CODE_LEN}자여야 합니다.`)
   process.exit(1)
 }
-const normalized = code.replace(/\D/g, '')
+const normalized = code
 // 손으로 고친 파일도 나만 읽게
 fs.chmodSync(P('private/access-code.txt'), 0o600)
 const plain = fs.readFileSync(P('private/roster.json'), 'utf8')

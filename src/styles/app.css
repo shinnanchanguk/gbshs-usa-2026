@@ -3977,6 +3977,35 @@ button.seat[data-present='true'] .seat__no {
   border-color: var(--accent);
 }
 
+.gate__input--long {
+  height: 52px;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-indent: 0.06em;
+}
+
+.gate__more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-top: var(--s-2);
+  border: 0;
+  background: none;
+  color: var(--on-dark-muted);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.gate__code {
+  display: grid;
+  gap: var(--s-2);
+}
+
 .gate__help,
 .gate__error {
   font-size: var(--fs-xs);
@@ -3993,6 +4022,12 @@ button.seat[data-present='true'] .seat__no {
   color: var(--ink);
   min-height: 52px;
   margin-top: var(--s-2);
+}
+
+.gate .btn--ghost {
+  background: transparent;
+  color: var(--on-dark);
+  border-color: rgba(244, 241, 235, 0.35);
 }
 
 /* ── 넓은 화면: 왼쪽 안내, 오른쪽 큰 지도 ──────────────────────────────── */
@@ -4076,4 +4111,186 @@ button.seat[data-present='true'] .seat__no {
     animation-duration: 1ms !important;
     transition-duration: 1ms !important;
   }
+}
+
+/* ── ZUDO 로 들어온 나 · 아침 기상 확인 (10/7 회의) ─────────────────────── */
+.zudo-me__who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 var(--s-2);
+  font-size: var(--fs-base);
+  font-weight: 800;
+}
+
+.wake {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.wake__dates {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.wake__dates .classpick__btn {
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+}
+
+.wake__deadline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+
+.wake__late {
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--ink);
+  font-size: var(--fs-2xs);
+  font-weight: 800;
+}
+
+.wake__sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.wake__sum [data-s='unreachable'] strong {
+  color: var(--accent-ink);
+}
+
+.wake__rooms {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wake__room {
+  display: grid;
+  gap: 6px;
+  padding: var(--s-3);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--sheet);
+}
+
+.wake__room[data-late] {
+  border-color: var(--accent);
+}
+
+.wake__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.wake__no {
+  flex: none;
+  font-size: var(--fs-base);
+}
+
+.wake__who {
+  min-width: 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.wake__helper {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.wake__btns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.wake__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--paper);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.wake__btn[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.wake__btn[data-s='unreachable'][aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+/* ── 내 항공권 (ZUDO) ────────────────────────────────────────────── */
+.ticket {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.ticket__text {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.ticket__pick {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.ticket__select {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--paper);
+  font: inherit;
+  font-size: var(--fs-sm);
+}
+
+.ticket__who {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-weight: 800;
+}
+
+.ticket__state {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ticket__btns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
 }

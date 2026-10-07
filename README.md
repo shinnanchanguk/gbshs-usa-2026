@@ -3,7 +3,7 @@
 경기북과학고등학교 1학년 해외 이공계 진로체험학습(2026. 10. 15.~10. 23., 미국 동부 6박 9일) 안내 사이트입니다.
 장을 한 장씩 넘기면 그 순서가 곧 시간표이고 버스 동선이며, 지도가 앞 장소에서 이 장소까지 오는 길을 따라 그립니다.
 
-- 사이트: https://shinnanchanguk.github.io/gbshs-usa-2026/ (입장 코드는 담임 선생님께)
+- 사이트: https://shinnanchanguk.github.io/gbshs-usa-2026/ (ZUDO 로그인으로 들어와요. ZUDO 학생·학부모·교직원 첫 화면의 「미국 체험학습 안내」)
 - 내용 출처: 운영계획(안)·수정(안), 9/21 사전답사 결과 공유 회의, 9/30 학생 브리핑·면책/의료 동의서 설명, 버스 좌석표·객실 배치도, 답사 사진, 10/1 인솔 선생님 피드백(3차)
 
 ## 무엇이 들어 있나
@@ -51,17 +51,30 @@ https://shinnanchanguk.github.io/gbshs-usa-2026/guide/
 - 사전 안내판은 서비스 워커를 두지 않고, 본 사이트 서비스 워커는 `/guide/` 주소를 건드리지 않습니다.
 - `npm run build` 끝에서 `scripts/check-guide.mjs`가 사전 안내판에 암호문 명단·복호화 코드·선생님 메모가 없는지 보고, 있으면 빌드를 멈춥니다(명단 파일이 있는 컴퓨터에서는 이름·전화번호까지 확인).
 
-## 입장 코드와 명단 (공개 레포)
+## ZUDO 로그인과 명단 (공개 레포)
+
+들어오는 길은 ZUDO(학교 기숙사 시스템, https://zudo.my) 로그인입니다(2026-10-07).
+
+- ZUDO 의 「미국 체험학습 안내」 배너 → `/trip-handoff` 가 5분짜리 한 번 쓰는 코드를 만들어 `#/zudo/<코드>` 로 보냅니다.
+- 이 사이트가 코드를 `POST /api/trip/session` 으로 기기용 토큰(10/25까지)과 바꿔 기기에 저장합니다(`src/lib/zudo.ts`). 그다음부터는 ZUDO 로그인 없이, 인터넷 없이도 열립니다.
+- 대상: 1학년 학생, 인증을 마친 1학년 학부모(자녀 고정), 인솔 교사 허용 목록. 판정은 ZUDO 가 요청마다 다시 합니다(`zudo/src/lib/trip/access.ts`).
+- 서버 자료는 ZUDO 에만 있습니다: 학생 개인 항공권 PDF(비공개 저장공간), 아침 기상 확인 기록. 이 레포에는 비밀값이 없습니다.
+- 「이 기기에서 잠그기」는 명단 열쇠·기기 토큰·저장한 항공권을 지웁니다.
 
 학생 이름·좌석·객실·인솔교사 연락처·멘토 이름은 **암호문(`content/roster.enc.json`)으로만** 레포에 있습니다.
-입장 코드로 PBKDF2(60만 번) 열쇠를 만들어 AES-GCM으로 풉니다. 코드를 모르면 내용을 볼 수 없습니다.
-건강 정보(요보호 학생 명단)는 암호문에도 넣지 않습니다.
+명단 열쇠로 PBKDF2(60만 번) 열쇠를 만들어 AES-GCM으로 풉니다. 건강 정보(요보호 학생 명단)는 암호문에도 넣지 않습니다.
 
-- 코드·원본은 레포 밖 `private/`(.gitignore)에만 있습니다: `private/access-code.txt`, `private/roster.json`
-- 명단이 바뀌면 `private/roster.json`을 고친 뒤 `npm run roster:seal`로 암호문을 다시 만듭니다.
-- 입장 코드는 숫자 6자리입니다. 바꾸려면 `private/access-code.txt`에 새 숫자 6자리를 적고 `npm run roster:seal`을 실행합니다(파일을 지우면 새 코드가 생깁니다). 이미 들어온 기기는 다시 입력합니다.
-- 숫자 6자리는 로그인이 붙기 전까지 쓰는 임시 잠금입니다. 공개된 암호문에 100만 가지 숫자를 다 넣어 보면 풀리므로, 로그인·서버 명단으로 옮기면 암호문과 이 코드를 없앱니다.
-- 카톡으로 `https://shinnanchanguk.github.io/gbshs-usa-2026/#/code/<코드>` 링크를 보내면 누르기만 해도 열립니다(코드는 `#` 뒤라 서버로 가지 않음).
+- 열쇠·원본은 레포 밖 `private/`(.gitignore)에만 있습니다: `private/access-code.txt`, `private/roster.json`
+- 명단 열쇠는 사람이 치지 않아서 영문 대문자·숫자 26자 무작위입니다(무차별 대입이 안 되는 길이). ZUDO 가 로그인한 대상자에게만 넘겨줍니다(ZUDO 환경변수 `TRIP_ROSTER_CODE` 와 같은 값).
+- 명단이 바뀌면 `private/roster.json`을 고친 뒤 `npm run roster:seal`로 암호문을 다시 만듭니다. ZUDO 로 들어온 기기는 저장해 둔 열쇠로 저절로 다시 엽니다.
+- 열쇠를 바꾸려면 `private/access-code.txt`를 지우고 `npm run roster:seal` → 같은 값을 ZUDO 의 `TRIP_ROSTER_CODE` 로.
+- 비상용: `https://shinnanchanguk.github.io/gbshs-usa-2026/#/code/<열쇠>` 링크(코드는 `#` 뒤라 서버로 가지 않음). 입장 화면의 「선생님께 받은 코드로 열기」에 붙여 넣어도 됩니다.
+- 예전(2026-10-07 전) 6자리 코드로 봉한 암호문은 git 기록에 남아 있습니다. 그 판들은 6자리라 풀릴 수 있다고 보고 다룹니다.
+
+## 오프라인 안내 PDF
+
+`npm run build` 마지막에 `scripts/build-offline-pdf.mjs` 가 인쇄용 화면(`#/print`, `src/features/print/PrintGuide.tsx`)을 A4 PDF 로 떠서 `dist/offline/USA2026_offline-guide.pdf` 에 둡니다(이름 없는 공개 내용: 비상 연락처·숙소·항공편·아침 출발·일차별 일정과 다시 모이는 곳·약속·챙길 것).
+메뉴의 「오프라인 안내 PDF 받기」를 누르면 본 사이트는 휴대폰에서 ① 내 정보 쪽(자리·방·짝·도우미·인솔 선생님 연락처) ② 공통 안내 ③ 내 항공권을 한 파일로 합칩니다(`personalPdf.ts`, pdf-lib). 사전 안내판은 공통 안내만 받습니다.
 
 ## 폴더 구조
 
@@ -128,6 +141,6 @@ npm run routes     # 장소 좌표를 바꿨으면 길 다시 받기
 
 ## 사용한 것과 라이선스
 
-- React, Vite, TypeScript, MapLibre GL JS, [SheetJS](https://sheetjs.com)(xlsx 0.20.3, Apache-2.0, 느낀 점 엑셀), 지도 타일 [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles © OpenStreetMap contributors), 경로 계산 [OSRM](https://project-osrm.org) (© OpenStreetMap contributors)
+- React, Vite, TypeScript, MapLibre GL JS, [SheetJS](https://sheetjs.com)(xlsx 0.20.3, Apache-2.0, 느낀 점 엑셀), [pdf-lib](https://pdf-lib.js.org)(1.17.1, MIT, 오프라인 안내 PDF 합치기), 지도 타일 [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles © OpenStreetMap contributors), 경로 계산 [OSRM](https://project-osrm.org) (© OpenStreetMap contributors)
 - 디자인: 도름슬라이드 크로마 테마
 - 글꼴: Space Grotesk, JetBrains Mono, Wanted Sans(한글 2,350자 부분 글꼴) · SIL Open Font License 1.1 (`LICENSES/`)

@@ -6,7 +6,8 @@
   "description": "경기북과학고 2026 해외 이공계 진로체험학습(미국 동부) 안내 사이트",
   "scripts": {
     "dev": "vite",
-    "build": "npm run check && tsc -b && vite build && vite build --config vite.guide.config.ts && node scripts/check-guide.mjs",
+    "build": "npm run check && tsc -b && vite build && vite build --config vite.guide.config.ts && node scripts/check-guide.mjs && node scripts/build-offline-pdf.mjs",
+    "build:pdf": "node scripts/build-offline-pdf.mjs",
     "build:guide": "vite build --config vite.guide.config.ts",
     "preview": "vite preview",
     "check": "node scripts/check-content.mjs",
@@ -18,6 +19,7 @@
   },
   "dependencies": {
     "maplibre-gl": "^6.10.0",
+    "pdf-lib": "^1.17.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"

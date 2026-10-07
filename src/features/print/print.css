@@ -1,0 +1,138 @@
+/* 오프라인 안내 PDF(#/print). A4 세로, 흑백으로 읽기 좋게. */
+@page {
+  size: A4;
+  margin: 12mm 12mm 14mm;
+}
+
+html.printing,
+html.printing body,
+html.printing #root {
+  height: auto;
+  background: #fff;
+  background-image: none;
+}
+
+.print {
+  max-width: 186mm;
+  margin: 0 auto;
+  padding: 0;
+  color: #1c1a17;
+  background: #fff;
+  font-family: var(--font-ui);
+  font-size: 10pt;
+  line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.print h1 {
+  margin: 2mm 0 1mm;
+  font-family: var(--font-display);
+  font-size: 22pt;
+  line-height: 1.2;
+}
+
+.print h2 {
+  margin: 0 0 2mm;
+  padding-bottom: 1mm;
+  border-bottom: 1.2pt solid #1c1a17;
+  font-size: 13pt;
+}
+
+.print h3 {
+  margin: 2mm 0 1mm;
+  font-size: 10.5pt;
+}
+
+.print p {
+  margin: 0 0 1.5mm;
+}
+
+.print ul,
+.print ol {
+  margin: 0;
+  padding-left: 5mm;
+}
+
+.print li {
+  margin: 0 0 1mm;
+}
+
+.print__cover {
+  margin-bottom: 6mm;
+}
+
+.print__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 9pt;
+  letter-spacing: 0.08em;
+}
+
+.print__note {
+  padding: 2mm 3mm;
+  border: 0.8pt solid #1c1a17;
+  border-radius: 2mm;
+}
+
+.print__block,
+.print__day {
+  margin-bottom: 6mm;
+  break-inside: avoid-page;
+}
+
+.print__day {
+  break-inside: auto;
+}
+
+.print__day h2,
+.print__block h2 {
+  break-after: avoid;
+}
+
+.print__group {
+  break-inside: avoid;
+}
+
+.print__list {
+  list-style: disc;
+}
+
+ol.print__list {
+  list-style: decimal;
+}
+
+.print__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.print__table th,
+.print__table td {
+  padding: 1.2mm 1.5mm;
+  border-bottom: 0.5pt solid #b9b2a8;
+  text-align: left;
+  vertical-align: top;
+}
+
+.print__table tr {
+  break-inside: avoid;
+}
+
+.print__time {
+  width: 26mm;
+  white-space: nowrap;
+}
+
+.print__mono {
+  font-family: var(--font-mono);
+  font-size: 9pt;
+}
+
+.print__muted {
+  color: #5d574f;
+}
+
+.print__meet {
+  font-size: 9pt;
+  font-weight: 700;
+}

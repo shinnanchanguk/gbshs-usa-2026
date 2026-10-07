@@ -19,6 +19,10 @@ export type Profile = {
   teacherName?: string
   /** 교사가 출석을 볼 반 */
   classNo?: number
+  /** ZUDO 로 들어왔으면 true. 역할·학번은 ZUDO 가 정한 대로 두고 메뉴에서 바꾸지 않는다(선생님은 예외) */
+  fromZudo?: boolean
+  /** 보호자: ZUDO 에서 인증된 자녀 학번 */
+  children?: string[]
 }
 
 export function useProfile() {

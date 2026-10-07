@@ -11,6 +11,9 @@ import { MenuSheet } from '../features/menu/MenuSheet'
 import { NoticePopup } from '../features/notice/NoticePopup'
 import { NoticeEditor } from '../features/notice/NoticeEditor'
 import { NoticeManage } from '../features/notice/NoticeManage'
+import { WakeSheet } from '../features/wake/WakeSheet'
+import { useZudoSession } from '../lib/zudo'
+import { downloadTicket, savedTicket } from '../lib/ticketStore'
 import { goTo, useLocation } from '../lib/router'
 import { noticeVersion, useHiddenNotices, useLastPage, useMapTall, useNotices, type Notice } from '../lib/repo'
 import { daysUntil } from '../lib/time'
@@ -19,10 +22,11 @@ import { GUIDE } from '../lib/edition'
 
 export function Shell({ onLock }: { onLock: () => void }) {
   const loc = useLocation()
-  const { at, profile, teacher } = useApp()
+  const { at, profile, teacher, me } = useApp()
+  const zudo = useZudoSession()
   const [lastPage, setLastPage] = useLastPage()
   const [mapTall, setMapTall] = useMapTall()
-  const [sheet, setSheet] = useState<'schedule' | 'menu' | 'compose' | 'manage' | null>(null)
+  const [sheet, setSheet] = useState<'schedule' | 'menu' | 'compose' | 'manage' | 'wake' | null>(null)
   const { notices, create: createNotice, update: updateNotice, remove: removeNotice } = useNotices()
   const { hidden, hide } = useHiddenNotices()
   const [editing, setEditing] = useState<Notice | null>(null)
@@ -40,6 +44,12 @@ export function Shell({ onLock }: { onLock: () => void }) {
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [])
+  // ZUDO 로 들어온 학생·보호자는 내(자녀) 항공권을 미리 받아 둔다. 비행기 모드나 공항 와이파이가 안 될 때도 열리게.
+  const ticketOwner = !GUIDE && zudo && zudo.me.role !== 'teacher' ? (me?.id ?? null) : null
+  useEffect(() => {
+    if (!ticketOwner) return
+    void savedTicket(ticketOwner).then((b) => (b ? undefined : downloadTicket(ticketOwner).catch(() => undefined)))
+  }, [ticketOwner])
   const scrollRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<HTMLElement>(null)
   /** 바로 앞 화면의 지도 칸 높이(안내 장은 0). 장이 바뀌며 지도가 생기거나 없어져도 글이 튀지 않게 쓴다. */
@@ -221,8 +231,10 @@ export function Shell({ onLock }: { onLock: () => void }) {
             setEditing(null)
             setSheet(view)
           }}
+          onWake={() => setSheet('wake')}
         />
       ) : null}
+      {!GUIDE && sheet === 'wake' ? <WakeSheet onClose={() => setSheet(null)} /> : null}
       {!GUIDE && sheet === 'compose' && author ? (
         <NoticeEditor
           key={editing?.id ?? 'new'}

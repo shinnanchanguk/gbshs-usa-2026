@@ -6,11 +6,12 @@
  * 해외에서 지하철·박물관처럼 인터넷이 약한 곳에서도 이미 본 일정과 사진은 열린다.
  */
 const PREFIX = 'usa2026-'
-const SHELL = PREFIX + 'shell-v3'
+const SHELL = PREFIX + 'shell-v4'
 const ASSETS = PREFIX + 'assets-v2'
 const PHOTOS = PREFIX + 'photos-v1'
 const TILES = PREFIX + 'tiles-v1'
-const KEEP = [SHELL, ASSETS, PHOTOS, TILES]
+const OFFLINE = PREFIX + 'offline-v1'
+const KEEP = [SHELL, ASSETS, PHOTOS, TILES, OFFLINE]
 const LIMIT = { [PHOTOS]: 500, [TILES]: 1800 }
 
 self.addEventListener('install', (event) => {
@@ -79,6 +80,8 @@ self.addEventListener('fetch', (event) => {
   }
   if (url.origin === self.location.origin) {
     if (url.pathname.includes('/assets/')) event.respondWith(cacheFirst(req, ASSETS))
+    // 오프라인 안내 PDF: 새로 받을 수 있으면 새것을, 안 되면 저장해 둔 것을 쓴다(내용이 바뀔 수 있어서)
+    else if (url.pathname.includes('/offline/')) event.respondWith(fetch(req).then((res) => { if (res.ok) { const copy = res.clone(); caches.open(OFFLINE).then((c) => c.put(req, copy)) } return res }).catch(() => caches.match(req).then((r) => r || Response.error())))
     else if (url.pathname.includes('/photos/')) event.respondWith(cacheFirst(req, PHOTOS))
     return
   }
