@@ -104,7 +104,7 @@ export const HELPER_LABEL: Record<HelperKey, string> = {
 
 export const HELPER_JOB: Record<HelperKey, string> = {
   luggage: '숙소에 도착하면 가장 먼저 내려 짐을 꺼내 한곳에 격자로 늘어놓아요. 아침에는 가장 먼저 나와 짐을 싣고 가장 나중에 타요.',
-  wakeup: '맡은 남학생 객실이 제때 일어났는지 확인하고 점호를 준비해요.',
+  wakeup: '아침마다 맡은 방이 제때 일어났는지 확인해요. 출발 30분 전까지 확인을 마치고, 안 되는 방은 바로 선생님께 알려요.',
   photo: '우리 반 사진과 영상을 찍어 공유 폴더에 올려요.',
   banner: '현수막을 챙기고 단체 사진을 찍을 때 펼쳐요.',
   web: '이 안내 사이트를 함께 만들고 고쳐요.',

@@ -68,6 +68,7 @@ export const Source = z.enum([
   'roster', // 버스 좌석표·객실 배치도 엑셀(이름은 공개 화면에 넣지 않음)
   'mentor', // MIT 멘토 정보 엑셀·교사 카톡(이름은 공개 화면에 넣지 않음)
   'feedback', // 2026. 10. 1. 인솔 교사 카톡 피드백(3차 자료, 이름은 적지 않음)
+  'meeting', // 2026. 10. 7. 인솔 교사 회의 녹음(4차 자료, 이름은 적지 않음)
 ])
 
 export const ThemeId = z.enum(['campus', 'lecture', 'research', 'lab', 'global', 'arts', 'english', 'science'])
