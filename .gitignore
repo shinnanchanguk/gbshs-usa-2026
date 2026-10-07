@@ -11,3 +11,6 @@ private/
 .impeccable/review/
 .impeccable/mocks/
 .claude/요구사항-원장.md
+
+# 브라우저 검증 도구가 남기는 화면 기록(입장 코드가 찍힐 수 있음)
+.playwright-mcp/
