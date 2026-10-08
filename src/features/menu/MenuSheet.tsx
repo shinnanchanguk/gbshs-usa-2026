@@ -173,7 +173,7 @@ export function MenuSheet({
               {zudo.me.canResetPassword ? (
                 <a className="quick__btn" href={ZUDO_PASSWORD_RESET_URL} target="_blank" rel="noopener noreferrer">
                   <Icon name="lock" />
-                  학생 비밀번호 초기화
+                  학생·학부모 비밀번호 초기화
                 </a>
               ) : null}
             </div>

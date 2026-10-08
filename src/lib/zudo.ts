@@ -12,7 +12,7 @@ import { readStored, useStored, writeStored } from './storage'
 // zudo.my 는 www.zudo.my 로 넘긴다. 넘어가면 브라우저가 토큰 헤더를 버리고 사전 확인(CORS)도 막히므로 처음부터 www 를 부른다.
 export const ZUDO_ORIGIN: string = import.meta.env.VITE_ZUDO_ORIGIN || 'https://www.zudo.my'
 export const ZUDO_HANDOFF_URL = `${ZUDO_ORIGIN}/trip-handoff`
-export const ZUDO_PASSWORD_RESET_URL = `${ZUDO_ORIGIN}/password-reset`
+export const ZUDO_PASSWORD_RESET_URL = `${ZUDO_ORIGIN}/admin/system/password-reset`
 export const TRIP_PIN_LENGTH = 6
 
 export type ZudoMe = {
