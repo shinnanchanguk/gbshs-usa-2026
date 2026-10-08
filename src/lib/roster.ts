@@ -36,6 +36,27 @@ export type Roster = {
   emergency: Record<string, string[]>
   nightDuty: { date: string; time: string; name: string }[]
   mentorsMIT: { no: number; name: string; field: string; detail: string; school: string }[]
+  /** 보호자 문의(부장 선생님 1:1 오픈채팅). 공개 레포에 남지 않게 암호문에만 있다. 예전 암호문에는 없다. */
+  parentContact?: ParentContact
+}
+
+/** QR 은 명단을 만들 때 미리 그린 모듈 경로다(가로 줄 단위 사각형, 바깥 여백 4칸 포함). */
+export type ParentContact = { teacher: string; url: string; qr: { size: number; path: string } }
+
+/**
+ * 카카오톡 오픈채팅 주소 모양. 괄호·역슬래시·물음표를 받지 않는다.
+ * personalPdf 가 이 주소를 PDF 링크(PDFString, 이스케이프 없음)에 그대로 넣으므로 넓히지 말 것.
+ */
+export const KAKAO_OPEN_CHAT = /^https:\/\/open\.kakao\.com\/o\/[A-Za-z0-9]+$/
+const QR_PATH = /^[Mhvz0-9 -]+$/
+
+/** 보호자 문의 오픈채팅. 모양이 예상과 다르면(값이 빠졌거나 이상하면) 화면에 쓰지 않는다. */
+export function parentChat(roster: Roster): ParentContact | null {
+  const c = roster.parentContact
+  if (!c || typeof c.url !== 'string' || typeof c.teacher !== 'string' || !c.qr || typeof c.qr.path !== 'string') return null
+  if (!KAKAO_OPEN_CHAT.test(c.url) || !QR_PATH.test(c.qr.path) || c.qr.path.length > 20000) return null
+  if (!Number.isInteger(c.qr.size) || c.qr.size < 21 || c.qr.size > 200 || c.teacher.length > 20) return null
+  return c
 }
 
 type Sealed = { v: 1; iter: number; salt: string; iv: string; data: string }

@@ -4,7 +4,7 @@
  * 내 정보 쪽은 사이트 글꼴로 그림을 그려 넣어 한글 글꼴을 PDF 에 따로 심지 않는다.
  * pdf-lib 은 이 파일을 부를 때만 받아 온다(처음 화면이 무거워지지 않게).
  */
-import { HELPER_LABEL, type Roster, type Student, type Teacher } from '../../lib/roster'
+import { HELPER_LABEL, KAKAO_OPEN_CHAT, parentChat, type ParentContact, type Roster, type Student, type Teacher } from '../../lib/roster'
 import type { Profile } from '../../lib/repo'
 import { COMMON_PDF_URL } from './offline'
 import { getTicket } from '../../lib/ticketStore'
@@ -42,7 +42,48 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number): strin
   return out
 }
 
-async function drawPage(lines: Line[]): Promise<Uint8Array> {
+/** 캔버스 좌표의 사각형 [왼쪽, 위, 오른쪽, 아래] */
+type Rect = [number, number, number, number]
+
+/**
+ * 보호자 문의(부장 선생님 오픈채팅): QR 과 주소를 그리고, PDF 에서 누를 수 있게 그 자리를 돌려준다.
+ * QR 칸은 정수 픽셀로 그려야 칸 사이에 흰 줄이 안 생겨 카메라가 잘 읽는다.
+ */
+function drawChat(ctx: CanvasRenderingContext2D, chat: ParentContact, startY: number): { y: number; link?: Rect } {
+  let y = startY + 44
+  ctx.fillStyle = '#1c1a17'
+  ctx.font = `700 36px ${FONT}`
+  y += 36 * 1.45
+  ctx.fillText('보호자 문의', M, y)
+  ctx.font = `400 30px ${FONT}`
+  for (const row of wrap(ctx, `여행 중 궁금한 일은 ${chat.teacher} 부장 선생님께 카카오톡 1:1 오픈채팅으로 물어봐 주세요.`, W - M * 2)) {
+    y += 30 * 1.45
+    ctx.fillText(row, M, y)
+  }
+  const unit = Math.floor(280 / chat.qr.size)
+  const box = unit * chat.qr.size
+  const top = Math.round(y + 28)
+  if (top + box > H - M) return { y }
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(M, top, box, box)
+  ctx.save()
+  ctx.translate(M, top)
+  ctx.scale(unit, unit)
+  ctx.fillStyle = '#000'
+  ctx.fill(new Path2D(chat.qr.path))
+  ctx.restore()
+  const tx = M + box + 40
+  ctx.fillStyle = '#1c1a17'
+  ctx.font = `700 32px ${FONT}`
+  ctx.fillText('카카오톡 오픈채팅', tx, top + 80)
+  ctx.font = `400 28px ${FONT}`
+  ctx.fillText(chat.url.replace(/^https:\/\//, ''), tx, top + 130)
+  ctx.fillStyle = '#5d574f'
+  ctx.fillText('휴대폰 카메라로 찍거나 눌러서 열어요', tx, top + 180)
+  return { y: top + box, link: [M, top, W - M, top + box] }
+}
+
+async function drawPage(lines: Line[], chat?: ParentContact | null): Promise<{ png: Uint8Array; link?: Rect }> {
   await Promise.all([document.fonts.load(`700 52px ${FONT}`, '가'), document.fonts.load(`400 34px ${FONT}`, '가')]).catch(() => undefined)
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -62,9 +103,10 @@ async function drawPage(lines: Line[]): Promise<Uint8Array> {
       ctx.fillText(row, M, y)
     }
   }
+  const link = chat ? drawChat(ctx, chat, y).link : undefined
   const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'))
   if (!blob) throw new Error('canvas')
-  return new Uint8Array(await blob.arrayBuffer())
+  return { png: new Uint8Array(await blob.arrayBuffer()), link }
 }
 
 function studentLines(s: Student, roster: Roster, label: string): Line[] {
@@ -109,7 +151,7 @@ export type OfflinePdfResult = { blob: Blob; name: string; missingTicket: boolea
 
 export async function buildOfflinePdf(opts: { roster: Roster; profile: Profile | null; me: Student | null; teacher: Teacher | null }): Promise<OfflinePdfResult> {
   const { roster, profile, me, teacher } = opts
-  const { PDFDocument } = await import('pdf-lib')
+  const { PDFDocument, PDFName, PDFString } = await import('pdf-lib')
   const res = await fetch(COMMON_PDF_URL, { cache: 'no-cache' })
   if (!res.ok) throw new Error('common')
   const common = await PDFDocument.load(await res.arrayBuffer())
@@ -129,9 +171,27 @@ export async function buildOfflinePdf(opts: { roster: Roster; profile: Profile |
         ? studentLines(me, roster, profile?.role === 'parent' ? '우리 아이 정보' : '내 정보')
         : []
   if (body.length) {
-    const png = await out.embedPng(await drawPage([...head, ...body, ...contactLines(roster)]))
-    const page = out.addPage([595.28, 841.89])
-    page.drawImage(png, { x: 0, y: 0, width: 595.28, height: 841.89 })
+    const chat = profile?.role === 'parent' ? parentChat(roster) : null
+    const drawn = await drawPage([...head, ...body, ...contactLines(roster)], chat)
+    const png = await out.embedPng(drawn.png)
+    const [pw, ph] = [595.28, 841.89]
+    const page = out.addPage([pw, ph])
+    page.drawImage(png, { x: 0, y: 0, width: pw, height: ph })
+    if (chat && drawn.link && KAKAO_OPEN_CHAT.test(chat.url)) {
+      // QR·주소 자리를 누르면 오픈채팅이 열리게 링크를 얹는다(PDF 는 아래가 원점이라 위아래를 뒤집는다)
+      const s = pw / W
+      const [x0, y0, x1, y1] = drawn.link
+      const annot = out.context.register(
+        out.context.obj({
+          Type: 'Annot',
+          Subtype: 'Link',
+          Rect: [x0 * s, ph - y1 * s, x1 * s, ph - y0 * s],
+          Border: [0, 0, 0],
+          A: { Type: 'Action', S: 'URI', URI: PDFString.of(chat.url) },
+        }),
+      )
+      page.node.set(PDFName.of('Annots'), out.context.obj([annot]))
+    }
   }
 
   // ② 공통 안내

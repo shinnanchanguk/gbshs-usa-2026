@@ -3,6 +3,8 @@ import { Icon } from '../../components/Icon'
 import { useApp } from '../../app/context'
 import { GUIDE, LATER } from '../../lib/edition'
 import { LaterNote } from './LaterNote'
+import { ParentChatCard } from './ParentChatCard'
+import { parentChat } from '../../lib/roster'
 
 const tel = (p: string) => `tel:${p.replace(/[^+\d]/g, '')}`
 
@@ -10,6 +12,7 @@ const tel = (p: string) => `tel:${p.replace(/[^+\d]/g, '')}`
 export function ContactsWidget() {
   const { roster, profile } = useApp()
   const teacherView = profile?.role === 'teacher'
+  const chat = !GUIDE && (teacherView || profile?.role === 'parent') ? parentChat(roster) : null
   return (
     <div className="contacts">
       <ol className="ladder" aria-label="도움을 청하는 순서">
@@ -20,6 +23,8 @@ export function ContactsWidget() {
           </li>
         ))}
       </ol>
+
+      {chat ? <ParentChatCard contact={chat} teacherView={teacherView} /> : null}
 
       {GUIDE ? (
         <LaterNote icon="users" title="인솔 선생님" text={`인솔 선생님 연락처는 ${LATER}`} />

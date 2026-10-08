@@ -2593,6 +2593,55 @@ button.seat[data-present='true'] .seat__no {
   color: var(--paper);
 }
 
+/* 보호자 문의(부장 선생님 오픈채팅) */
+.parent-chat__lead {
+  margin: 0 0 var(--s-3);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+
+.parent-chat__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.qr {
+  display: block;
+  width: 132px;
+  height: 132px;
+  flex: none;
+  border-radius: 6px;
+}
+
+.parent-chat__go {
+  display: flex;
+  flex: 1 1 150px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.parent-chat__go .fineprint {
+  margin-top: 0;
+}
+
+.parent-chat__url {
+  display: block;
+  margin-top: var(--s-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+a.quick__btn {
+  color: inherit;
+  text-decoration: none;
+}
+
 .duty {
   display: grid;
   gap: 4px;

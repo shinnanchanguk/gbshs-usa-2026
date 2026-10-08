@@ -7,6 +7,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIR = path.join(ROOT, 'dist', 'guide')
@@ -16,12 +17,13 @@ if (!fs.existsSync(path.join(DIR, 'index.html'))) {
 }
 
 const files = []
-const walk = (d) => {
+const walk = (d, out = files) => {
   for (const e of fs.readdirSync(d, { withFileTypes: true })) {
     const f = path.join(d, e.name)
-    if (e.isDirectory()) walk(f)
-    else if (/\.(js|css|html|json|webmanifest|txt)$/.test(e.name)) files.push(f)
+    if (e.isDirectory()) walk(f, out)
+    else if (/\.(js|css|html|json|webmanifest|txt)$/.test(e.name)) out.push(f)
   }
+  return out
 }
 walk(DIR)
 const text = files.map((f) => fs.readFileSync(f, 'utf8')).join('\n')
@@ -47,6 +49,17 @@ if (fs.existsSync(privatePath)) {
   const phoneHits = phones.filter((p) => digits.includes(p)).length
   if (nameHits) errors.push(`명단 이름 ${nameHits}개가 들어 있다`)
   if (phoneHits) errors.push(`인솔교사 전화번호 ${phoneHits}개가 들어 있다`)
+
+  // 보호자 문의 오픈채팅 주소는 명단 암호문에만 둔다. 사전 안내판·본판 번들·레포에 올라가는 파일 어디에도 평문이면 멈춘다.
+  const chatId = String(r.parentContact?.url ?? '').split('/o/')[1]
+  if (chatId && chatId.length >= 6) {
+    if (text.includes(chatId)) errors.push('사전 안내판에 보호자 문의 오픈채팅 주소가 들어 있다')
+    const mainHits = walk(path.join(ROOT, 'dist'), []).filter((f) => fs.readFileSync(f, 'utf8').includes(chatId))
+    if (mainHits.length) errors.push(`본판 번들 ${mainHits.length}개 파일에 보호자 문의 오픈채팅 주소가 들어 있다`)
+    const tracked = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT }).toString().split('\0').filter((f) => /\.(json|ts|tsx|js|mjs|md|html|css|txt|ya?ml)$/.test(f))
+    const repoHits = tracked.filter((f) => fs.existsSync(path.join(ROOT, f)) && fs.readFileSync(path.join(ROOT, f), 'utf8').includes(chatId))
+    if (repoHits.length) errors.push(`레포에 올라가는 파일 ${repoHits.length}개에 보호자 문의 오픈채팅 주소가 들어 있다`)
+  }
 }
 
 if (errors.length) {

@@ -3,7 +3,7 @@ import { slidePages, trip } from '../../content'
 import { Icon, type IconName } from '../../components/Icon'
 import { Sheet } from '../../components/Sheet'
 import { useApp } from '../../app/context'
-import { forget } from '../../lib/roster'
+import { forget, parentChat } from '../../lib/roster'
 import type { Role } from '../../lib/repo'
 import { ReflectionExport } from '../reflection/ReflectionExport'
 import { GUIDE } from '../../lib/edition'
@@ -38,6 +38,7 @@ export function MenuSheet({
   const zudo = useZudoSession()
   // ZUDO 로 들어온 학생·보호자는 ZUDO 가 정한 역할·학번 그대로 둔다(선생님은 학생 화면으로 바꿔 볼 수 있게 열어 둔다)
   const locked = !GUIDE && !!zudo && zudo.me.role !== 'teacher'
+  const chat = GUIDE ? null : parentChat(roster)
   const kids = (zudo?.me.children ?? []).map((id) => studentById.get(id)).filter((s): s is NonNullable<typeof s> => !!s)
   const canWake = !!zudo && (zudo.me.role === 'teacher' || (role === 'student' && !!me?.helpers?.includes('wakeup')))
   const [classNo, setClassNo] = useState<number>(me?.classNo ?? profile?.classNo ?? 1)
@@ -74,6 +75,12 @@ export function MenuSheet({
             </ul>
           ) : role === 'parent' && me ? (
             <p className="fineprint">우리 아이: {me.classNo}반 {me.no}번 {me.name}</p>
+          ) : null}
+          {role === 'parent' && chat ? (
+            <a className="quick__btn" href={chat.url} target="_blank" rel="noopener noreferrer">
+              <Icon name="chat" />
+              부장 선생님께 묻기(카카오톡 오픈채팅)
+            </a>
           ) : null}
           {canWake ? (
             <button type="button" className="quick__btn" onClick={onWake}>
