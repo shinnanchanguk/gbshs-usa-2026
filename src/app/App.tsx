@@ -127,12 +127,20 @@ function FullApp() {
         key={link.code ?? link.zudo ?? 'typed'}
         initialCode={link.code}
         notice={notice}
-        onOpen={(r) => setRoster(r)}
+        onOpen={(r) => {
+          setLink({ code: null, zudo: null })
+          setNotice(null)
+          setRoster(r)
+        }}
       />
     )
   return (
     <AppProvider roster={roster}>
-      <Shell onLock={() => setRoster(null)} />
+      <Shell onLock={() => {
+        setLink({ code: null, zudo: null })
+        setNotice(null)
+        setRoster(null)
+      }} />
     </AppProvider>
   )
 }

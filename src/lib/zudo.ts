@@ -13,6 +13,7 @@ import { readStored, useStored, writeStored } from './storage'
 export const ZUDO_ORIGIN: string = import.meta.env.VITE_ZUDO_ORIGIN || 'https://www.zudo.my'
 export const ZUDO_HANDOFF_URL = `${ZUDO_ORIGIN}/trip-handoff`
 export const ZUDO_PASSWORD_RESET_URL = `${ZUDO_ORIGIN}/password-reset`
+export const TRIP_PIN_LENGTH = 6
 
 export type ZudoMe = {
   role: 'student' | 'parent' | 'teacher'
@@ -68,6 +69,24 @@ export class ZudoError extends Error {
   ) {
     super(code)
   }
+}
+
+/** 비상용 6자리 PIN은 서버에서 확인한다. 명단을 봉한 긴 열쇠는 그대로 둔다. */
+export async function exchangeTripPin(pin: string): Promise<string> {
+  if (!/^\d{6}$/.test(pin)) throw new ZudoError(400, 'invalid_pin')
+  const res = await fetch(`${ZUDO_ORIGIN}/api/trip/access-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pin }),
+    cache: 'no-store',
+    credentials: 'omit',
+  })
+  const body = (await res.json().catch(() => ({}))) as { rosterCode?: unknown; error?: string }
+  if (!res.ok) throw new ZudoError(res.status, body.error ?? 'failed')
+  if (typeof body.rosterCode !== 'string' || !/^[0-9A-Z]{26}$/.test(body.rosterCode)) {
+    throw new ZudoError(503, 'bad_response')
+  }
+  return body.rosterCode
 }
 
 /** 같은 코드를 두 번 바꾸지 않게(화면이 시작 처리를 두 번 돌려도) 진행 중인 교환을 함께 쓴다 */

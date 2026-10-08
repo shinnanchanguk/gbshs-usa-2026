@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { trip } from '../../content'
 import { Icon } from '../../components/Icon'
-import { CODE_LEN, normalizeCode, unlock, type Roster } from '../../lib/roster'
-import { ZUDO_HANDOFF_URL } from '../../lib/zudo'
+import { normalizeCode, unlock, type Roster } from '../../lib/roster'
+import { exchangeTripPin, TRIP_PIN_LENGTH, ZudoError, ZUDO_HANDOFF_URL } from '../../lib/zudo'
 
 /**
  * 첫 화면. ZUDO 로 들어오면(src/lib/zudo.ts) 이 화면을 거치지 않고 바로 열린다.
- * 아직 이 기기에서 열지 않았으면 ZUDO 로 보내고, 선생님께 받은 비상용 링크(#/code/…)나 코드로도 열 수 있다.
+ * 아직 이 기기에서 열지 않았으면 ZUDO 로 보낸다. 비상용 PIN은 인터넷이 될 때 서버에서 확인한다.
+ * 예전에 받은 긴 비상용 링크(#/code/…)도 그대로 열린다.
  */
 export function EntryGate({
   initialCode,
@@ -18,8 +19,9 @@ export function EntryGate({
   notice?: string | null
   onOpen: (roster: Roster) => void
 }) {
-  const [code, setCode] = useState(initialCode ? normalizeCode(initialCode) : '')
+  const [code, setCode] = useState(initialCode && /^\d{6}$/.test(initialCode) ? initialCode : '')
   const [state, setState] = useState<'idle' | 'checking' | 'wrong'>('idle')
+  const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const tried = useRef(false)
   const input = useRef<HTMLInputElement>(null)
@@ -28,13 +30,27 @@ export function EntryGate({
     typeof window !== 'undefined' &&
     (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true)
 
-  async function submit(value: string) {
+  async function submit(value: string, fromLink = false) {
     const v = normalizeCode(value)
-    if (v.length < CODE_LEN) return
+    if (state === 'checking' || (!/^\d{6}$/.test(v) && !(fromLink && /^[0-9A-Z]{26}$/.test(v)))) return
     setState('checking')
-    const roster = await unlock(v)
-    if (roster) onOpen(roster)
-    else {
+    setError(null)
+    try {
+      const key = /^\d{6}$/.test(v) ? await exchangeTripPin(v) : v
+      const roster = await unlock(key)
+      if (!roster) throw new Error('roster_unavailable')
+      onOpen(roster)
+    } catch (e) {
+      const message = e instanceof ZudoError && e.status === 401
+        ? 'PIN이 맞지 않아요. 선생님께 받은 6자리 번호를 확인해 주세요.'
+        : e instanceof ZudoError && e.status === 429
+          ? 'PIN을 여러 번 넣어 잠시 잠겼어요. 15분 뒤 다시 넣거나 ZUDO로 로그인해 주세요.'
+          : e instanceof ZudoError && e.status === 423
+            ? '비상용 PIN이 잠겼어요. ZUDO로 로그인해 주세요.'
+            : e instanceof ZudoError && (e.status === 404 || e.status === 410 || e.status === 503)
+              ? '지금은 비상용 PIN으로 열 수 없어요. ZUDO로 로그인해 주세요.'
+              : 'PIN을 확인하지 못했어요. 인터넷을 확인하거나 ZUDO로 로그인해 주세요.'
+      setError(message)
       setState('wrong')
       setOpen(true)
       requestAnimationFrame(() => input.current?.select())
@@ -44,7 +60,7 @@ export function EntryGate({
   useEffect(() => {
     if (initialCode && !tried.current) {
       tried.current = true
-      void submit(initialCode)
+      void submit(initialCode, true)
     }
     // 링크로 들어온 첫 한 번만
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,7 +90,7 @@ export function EntryGate({
             <Icon name="user" size="1.1rem" /> ZUDO로 로그인
           </a>
           <p className="gate__help">
-            ZUDO에 로그인하면 내 자리·방·항공권이 바로 열려요. 한 번 들어오면 이 기기에서는 다시 묻지 않아요.
+            ZUDO로 로그인하면 PIN 없이 열려요. 한 번 들어오면 이 기기에서는 다시 묻지 않아요.
           </p>
           {standalone ? (
             <p className="gate__help">
@@ -83,7 +99,7 @@ export function EntryGate({
           ) : null}
 
           <button type="button" className="gate__more" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-            <Icon name="lock" size="0.95rem" /> 선생님께 받은 코드로 열기
+            <Icon name="lock" size="0.95rem" /> 비상용 PIN으로 열기
           </button>
           {open ? (
             <form
@@ -94,20 +110,22 @@ export function EntryGate({
               }}
             >
               <label className="gate__label" htmlFor="code">
-                코드 붙여 넣기
+                선생님께 받은 6자리 PIN
               </label>
               <input
                 ref={input}
                 id="code"
-                className="gate__input gate__input--long"
-                autoComplete="off"
-                autoCapitalize="characters"
+                className="gate__input"
+                type="password"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={TRIP_PIN_LENGTH}
+                placeholder="6자리 숫자"
                 spellCheck={false}
                 value={code}
                 onChange={(e) => {
-                  // 받은 링크를 통째로 붙여 넣어도 # 뒤의 코드만 쓴다
-                  const fromLink = e.target.value.match(/#\/code\/([A-Za-z0-9-]+)/)?.[1]
-                  setCode(normalizeCode(fromLink ?? e.target.value))
+                  setCode(e.target.value.replace(/\D/g, '').slice(0, TRIP_PIN_LENGTH))
+                  setError(null)
                   setState('idle')
                 }}
                 aria-invalid={state === 'wrong'}
@@ -117,13 +135,13 @@ export function EntryGate({
               />
               <p id="code-help" className={state === 'wrong' ? 'gate__error' : 'gate__help'} role={state === 'wrong' ? 'alert' : undefined}>
                 {state === 'wrong'
-                  ? '코드가 맞지 않아요. 받은 코드를 그대로 붙여 넣었는지 확인해 주세요.'
+                  ? error
                   : state === 'checking'
                     ? '여는 중이에요. 잠깐만 기다려 주세요.'
-                    : '선생님이 보내 준 링크를 누르면 저절로 열려요.'}
+                    : 'ZUDO로 들어오기 어려울 때만 써요. 처음 열 때는 인터넷이 필요해요.'}
               </p>
-              <button className="btn btn--ghost btn--block" type="submit" disabled={code.length < CODE_LEN || state === 'checking'}>
-                {state === 'checking' ? '여는 중' : '코드로 열기'}
+              <button className="btn btn--ghost btn--block" type="submit" disabled={code.length !== TRIP_PIN_LENGTH || state === 'checking'}>
+                {state === 'checking' ? '여는 중' : 'PIN으로 열기'}
               </button>
             </form>
           ) : null}

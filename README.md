@@ -65,10 +65,12 @@ https://shinnanchanguk.github.io/gbshs-usa-2026/guide/
 명단 열쇠로 PBKDF2(60만 번) 열쇠를 만들어 AES-GCM으로 풉니다. 건강 정보(요보호 학생 명단)는 암호문에도 넣지 않습니다.
 
 - 열쇠·원본은 레포 밖 `private/`(.gitignore)에만 있습니다: `private/access-code.txt`, `private/roster.json`
-- 명단 열쇠는 사람이 치지 않아서 영문 대문자·숫자 26자 무작위입니다(무차별 대입이 안 되는 길이). ZUDO 가 로그인한 대상자에게만 넘겨줍니다(ZUDO 환경변수 `TRIP_ROSTER_CODE` 와 같은 값).
+- 명단 열쇠는 영문 대문자·숫자 26자 무작위입니다. ZUDO 로그인 또는 아래 비상용 PIN 확인을 마치면 서버가 넘겨줍니다(ZUDO 환경변수 `TRIP_ROSTER_CODE` 와 같은 값). 사람이 직접 입력할 필요는 없습니다.
 - 명단이 바뀌면 `private/roster.json`을 고친 뒤 `npm run roster:seal`로 암호문을 다시 만듭니다. ZUDO 로 들어온 기기는 저장해 둔 열쇠로 저절로 다시 엽니다.
 - 열쇠를 바꾸려면 `private/access-code.txt`를 지우고 `npm run roster:seal` → 같은 값을 ZUDO 의 `TRIP_ROSTER_CODE` 로.
-- 비상용: `https://shinnanchanguk.github.io/gbshs-usa-2026/#/code/<열쇠>` 링크(코드는 `#` 뒤라 서버로 가지 않음). 입장 화면의 「선생님께 받은 코드로 열기」에 붙여 넣어도 됩니다.
+- 비상용: 첫 화면의 「비상용 PIN으로 열기」에서 선생님께 받은 숫자 6자리를 입력합니다. 처음 열 때는 인터넷이 필요합니다. `POST /api/trip/access-code`가 서버에서 PIN을 확인한 뒤 명단 열쇠만 넘겨줍니다. ZUDO 계정이나 항공권·기상 확인 권한은 생기지 않습니다.
+- 비상용 PIN은 ZUDO 서버의 `TRIP_FALLBACK_PIN`에만 설정하고, 로컬 사본은 `private/fallback-pin.txt`에 둡니다. 이 값으로 명단을 다시 암호화하지 않습니다. 서버가 시도 횟수를 제한할 수 있도록 명단 열쇠와 PIN을 분리합니다.
+- 예전에 받은 `https://shinnanchanguk.github.io/gbshs-usa-2026/#/code/<열쇠>` 링크도 계속 열립니다(열쇠는 `#` 뒤라 서버로 가지 않음). 화면에서 긴 열쇠를 직접 입력하는 방식은 없습니다.
 - 예전(2026-10-07 전) 6자리 코드로 봉한 암호문은 git 기록에 남아 있습니다. 그 판들은 6자리라 풀릴 수 있다고 보고 다룹니다.
 
 ## 오프라인 안내 PDF

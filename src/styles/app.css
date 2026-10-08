@@ -3977,13 +3977,6 @@ button.seat[data-present='true'] .seat__no {
   border-color: var(--accent);
 }
 
-.gate__input--long {
-  height: 52px;
-  font-size: 1rem;
-  letter-spacing: 0.06em;
-  text-indent: 0.06em;
-}
-
 .gate__more {
   display: inline-flex;
   align-items: center;
