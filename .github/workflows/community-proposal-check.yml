@@ -1,0 +1,27 @@
+name: Community proposal checks
+
+on:
+  pull_request:
+    paths:
+      - 'proposals/trip-community/**'
+      - '.github/workflows/community-proposal-check.yml'
+  push:
+    branches: ['codex/trip-community-review']
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: proposals/trip-community/source/server/community/package-lock.json
+      - run: npm ci --prefix proposals/trip-community/source/server/community
+      - run: npm test --prefix proposals/trip-community/source/server/community

@@ -1,0 +1,11 @@
+{
+  "eventId": "gbshs-usa-2026",
+  "regions": [
+    { "id": "general", "label": "공통", "pages": [] },
+    { "id": "new-haven", "label": "뉴헤이븐 · 예일", "pages": ["d1-yale-visitor-center", "d1-yale-campus-tour", "d1-yale-bookstore", "d1-dinner-hibachi"] },
+    { "id": "boston", "label": "보스턴 · 하버드 · MIT", "pages": ["d2-harvard-visitor-center", "d2-harvard-lecture-mentoring", "d2-harvard-art-museums", "d2-state-house", "d2-boston-common", "d2-freedom-trail", "d2-quincy-market", "d2-faneuil-hall", "d3-mit-lecture-qa", "d3-killian-court", "d3-mit-campus-mentoring", "d3-mit-lecture-ai", "d3-mit-free-store", "d3-dinner-99-restaurant"] },
+    { "id": "new-york", "label": "뉴욕 · 뉴저지", "pages": ["d4-lunch-the-big-house", "d4-moma", "d4-central-park", "d4-dinner-dallas-bbq", "d4-wicked-broadway", "d5-wall-street", "d5-statue-cruise", "d5-ground-zero", "d5-lunch-hyodonggak", "d5-met-museum", "d5-dinner-chillers", "d5-hamilton-park", "d7-jersey-gardens"] },
+    { "id": "princeton", "label": "프린스턴", "pages": ["d6-princeton-store", "d6-princeton-lecture", "d6-princeton-lecture-tour", "d6-lunch-golden-corral"] },
+    { "id": "washington", "label": "워싱턴 D.C.", "pages": ["d6-washington-monument-white-house", "d6-us-capitol", "d6-jefferson-memorial", "d6-korean-war-memorial", "d6-lincoln-memorial", "d6-dinner-nosh-grill", "d7-natural-history", "d7-air-space-museum"] }
+  ]
+}

@@ -1,0 +1,5 @@
+proposals/trip-community/source/server/community/node_modules/
+proposals/trip-community/source/server/community/data/
+proposals/trip-community/source/server/community/.env
+proposals/trip-community/source/server/community/.env.*
+proposals/trip-community/test-results/

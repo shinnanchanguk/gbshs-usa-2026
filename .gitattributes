@@ -1,0 +1,2 @@
+# Keep the original unified diff bytes; blank context lines are valid patch syntax.
+proposals/trip-community/integration.patch -text -whitespace

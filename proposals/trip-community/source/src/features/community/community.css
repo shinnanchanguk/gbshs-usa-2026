@@ -1,0 +1,47 @@
+.community-board, .community-form, .community-detail { font-size: 1rem; line-height: 1.6; min-width: 0; }
+.community-intro { display: flex; align-items: start; gap: 1rem; justify-content: space-between; margin-bottom: 1.5rem; }
+.community-intro p { color: var(--ink-2); max-width: 30rem; }
+.community-intro .btn { flex-shrink: 0; }
+.community-regions { display: flex; flex-wrap: wrap; gap: .5rem; padding-bottom: 1rem; border-bottom: 2px solid var(--ink); }
+.community-regions button { padding: .55rem .8rem; border: 1px solid var(--line-2); min-height: 44px; text-align: left; }
+.community-regions button[aria-pressed='true'] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+.community-filters, .community-form__pair { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }
+.community-filters > label, .community-form__pair > label { flex: 1 1 12rem; min-width: 0; }
+.community-form label, .community-filters label, .community-comments label { display: grid; gap: .35rem; font-weight: 600; }
+.community-form input:not([type='file']), .community-form textarea, .community-form select, .community-filters select, .community-comments textarea { width: 100%; min-width: 0; border: 1px solid var(--line-2); border-radius: 4px; background: var(--sheet); color: var(--ink); padding: .7rem; font: inherit; font-weight: 400; }
+.community-form textarea, .community-comments textarea { resize: vertical; }
+.community-form { display: grid; gap: 1rem; }
+.community-form h3 { font-size: 1.4rem; }
+.community-form .community-form__pair { margin: 0; }
+.community-filters .community-check { display: flex; align-items: center; gap: .5rem; flex: 0 1 auto; }
+.community-check input { width: 1.2rem; height: 1.2rem; accent-color: var(--accent-ink); }
+.community-empty { padding: 2.5rem .5rem; text-align: center; color: var(--muted); }
+.community-empty h3 { color: var(--ink); margin: .75rem 0; }
+.community-empty .btn { margin-top: 1rem; }
+.community-posts, .community-photos, .community-comments ul { list-style: none; margin: 0; padding: 0; }
+.community-posts > li { border-bottom: 1px solid var(--line-2); }
+.community-posts > li > button { display: flex; width: 100%; gap: 1rem; padding: 1.25rem 0; text-align: left; }
+.community-posts > li > button:hover strong { text-decoration: underline; text-underline-offset: 4px; }
+.community-posts__copy { display: grid; gap: .35rem; min-width: 0; }
+.community-posts__copy > strong { font-size: 1.15rem; overflow-wrap: anywhere; }
+.community-posts__thumb { width: 88px; height: 88px; flex-shrink: 0; overflow: hidden; background: var(--paper-2); border-radius: 4px; }
+.community-posts__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.community-meta { font-size: .875rem; color: var(--muted); overflow-wrap: anywhere; }
+.community-excerpt { color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.community-detail__title { font-family: var(--font-display); font-size: clamp(1.4rem, 5vw, 2rem); line-height: 1.3; margin: 1rem 0 .5rem; overflow-wrap: anywhere; }
+.community-detail__body { white-space: pre-wrap; overflow-wrap: anywhere; margin: 1.5rem 0; }
+.community-photos { display: grid; gap: 1rem; }
+.community-photos img { display: block; width: 100%; height: auto; max-height: 600px; object-fit: contain; background: var(--paper-2); }
+.community-photos--draft { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.community-photos--draft img { height: 130px; object-fit: cover; }
+.community-photo-placeholder { display: block; padding: 1rem; font-size: .875rem; color: var(--muted); }
+.community-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin: 1rem 0; }
+.community-message { padding: .85rem 1rem; background: var(--paper-2); border-left: 3px solid var(--accent-ink); overflow-wrap: anywhere; }
+.community-comments { border-top: 2px solid var(--ink); margin-top: 2rem; padding-top: 1rem; }
+.community-comments h4 { font-size: 1.15rem; }
+.community-comments li { padding: 1rem 0; border-bottom: 1px solid var(--line); }
+.community-comment__body { white-space: pre-wrap; overflow-wrap: anywhere; margin: .5rem 0; }
+.community-comments form { display: grid; justify-items: start; gap: .65rem; margin-top: 1rem; }
+.community-comments textarea { justify-self: stretch; }
+.community-upload input { max-width: 100%; font: inherit; }
+@media (max-width: 400px) { .community-intro { flex-direction: column; } .community-posts__thumb { width: 64px; height: 64px; } }

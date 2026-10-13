@@ -1,0 +1,404 @@
+diff --git a/.gitignore b/.gitignore
+index 65df7de696ce344fa56c5fcf7981330ad7f23efa..8fd54311df785de3e3057b28ca1ea1b4b957fcbb 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -14,3 +14,6 @@ private/
+ 
+ # 브라우저 검증 도구가 남기는 화면 기록(입장 코드가 찍힐 수 있음)
+ .playwright-mcp/
++.env*
++server/community/data/
++test-results/
+diff --git a/README.md b/README.md
+index baf06e02a74a2b543e9d2ef389144b9c4181e75f..2f92de926c071b995bd834bb3f0ccfe0e560e951 100644
+--- a/README.md
++++ b/README.md
+@@ -23,7 +23,7 @@
+ 지도는 MapLibre + OpenFreeMap(키 없음)이고, 장소 사이 길은 OSRM(OpenStreetMap)으로 미리 계산해 `content/routes.json`에 넣어 두었습니다.
+ 한 번 연 화면·사진·지도는 기기에 저장돼 해외에서 인터넷이 약해도 열립니다(서비스 워커).
+ 
+-> **DB가 아직 없습니다.** 느낀 점·사진·인원 확인·체크리스트·공지는 그 휴대폰에만 저장됩니다(보호자는 지금은 아이 휴대폰에서만 아이 기록을 봅니다). 저장 코드는 `src/lib/repo.ts` 한곳(사진 바이트는 `src/lib/photoStore.ts`)에 모아 두어 로그인·DB를 붙일 때 이 두 파일만 바꾸면 됩니다.
++> **기존 개인 기록에는 서버 DB가 아직 연결되지 않았습니다.** 느낀 점·사진·인원 확인·체크리스트·공지는 그 휴대폰에만 저장됩니다(보호자는 지금은 아이 휴대폰에서만 아이 기록을 봅니다). 저장 코드는 `src/lib/repo.ts` 한곳(사진 바이트는 `src/lib/photoStore.ts`)에 모아 두었습니다. 아래의 탐방 이야기 게시판은 별도 서버 DB를 사용하며 운영 연결이 필요합니다.
+ 
+ ### 장소마다 현장 기록(사진·메모)
+ 
+@@ -38,6 +38,15 @@
+ 질문 칸은 느낀 점을 쓰는 장마다 하나이고 제목은 `[2일차 장 제목] 질문`입니다. 살핌이 "질문: 답"을 첫 쌍점에서 가르고 `타임스탬프·이메일·응답시간` 같은 칸을 건너뛰므로, 질문 제목에는 쌍점과 그 낱말을 남기지 않고 답은 한 줄로 만듭니다.
+ 살핌은 학번과 이름이 명단과 둘 다 맞는 학생만 받으니, 살핌 학생 명단을 먼저 등록해 두어야 합니다.
+ 
++## 탐방 이야기 (서버 연결 후 사용)
++
++학생과 인솔 선생님이 지역·장소별로 정보 공유, 질문, 탐방 후기를 남기는 게시판입니다.
++메뉴의 「탐방 이야기」와 장소 안내 아래의 「이 장소의 이야기」에서 열고, 글·사진 5장·댓글을 서버에 저장합니다.
++초안은 계정별로 이 기기에 저장하며 오프라인에서도 글을 이어 쓸 수 있습니다. 기존 개인 기록과는 별개입니다.
++교사는 게시물을 숨기거나 복구하고 댓글을 삭제할 수 있습니다. 보호자와 비상용 PIN 사용자에게는 제공하지 않습니다.
++
++GitHub Pages만으로는 게시판 서버가 실행되지 않습니다. 연결 방법·API·운영 검증은 [docs/COMMUNITY.md](docs/COMMUNITY.md)를 참고하세요.
++
+ ## 학생 사전 안내판 (비밀번호 없는 링크)
+ 
+ https://shinnanchanguk.github.io/gbshs-usa-2026/guide/
+diff --git a/package-lock.json b/package-lock.json
+index 12878f8e183b786724076c73aa6477af3f401e1b..dddf8aac7afc504015bf2ddae9e777a5a04a7f7d 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -15,6 +15,7 @@
+         "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+       },
+       "devDependencies": {
++        "@types/node": "^22.12.0",
+         "@types/react": "^19.2.0",
+         "@types/react-dom": "^19.2.0",
+         "@vitejs/plugin-react": "^5.1.0",
+@@ -1874,6 +1875,16 @@
+       "integrity": "sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==",
+       "license": "MIT"
+     },
++    "node_modules/@types/node": {
++      "version": "22.20.5",
++      "resolved": "https://registry.npmjs.org/@types/node/-/node-22.20.5.tgz",
++      "integrity": "sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "undici-types": "~6.21.0"
++      }
++    },
+     "node_modules/@types/react": {
+       "version": "19.3.0",
+       "resolved": "https://registry.npmjs.org/@types/react/-/react-19.3.0.tgz",
+@@ -2655,6 +2666,13 @@
+         "node": ">=14.17"
+       }
+     },
++    "node_modules/undici-types": {
++      "version": "6.21.0",
++      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz",
++      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/update-browserslist-db": {
+       "version": "1.3.3",
+       "resolved": "https://registry.npmjs.org/update-browserslist-db/-/update-browserslist-db-1.3.3.tgz",
+diff --git a/package.json b/package.json
+index f39657ebb733863cc523239e915300f6a1142147..76b68a99ee357f73f9e4e0fd74ac25121bd70668 100644
+--- a/package.json
++++ b/package.json
+@@ -12,6 +12,8 @@
+     "preview": "vite preview",
+     "check": "node scripts/check-content.mjs",
+     "check:layout": "node scripts/check-guide-layout.mjs",
++    "test:community": "node --test server/community/tests/*.test.mjs",
++    "test:community:browser": "node tests/community-browser.mjs",
+     "photos:import": "node scripts/import-photos.mjs",
+     "typecheck": "tsc -b",
+     "routes": "node --network-family-autoselection-attempt-timeout=2000 scripts/build-routes.mjs",
+@@ -25,6 +27,7 @@
+     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+   },
+   "devDependencies": {
++    "@types/node": "^22.12.0",
+     "@types/react": "^19.2.0",
+     "@types/react-dom": "^19.2.0",
+     "@vitejs/plugin-react": "^5.1.0",
+diff --git a/public/sw.js b/public/sw.js
+index 81b5dcf9b400b93e7f96b593444857080db5e456..6ba4f781b4cd0c981d457193465fcf52da32ef42 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -73,6 +73,8 @@ self.addEventListener('fetch', (event) => {
+   const req = event.request
+   if (req.method !== 'GET') return
+   const url = new URL(req.url)
++  // 참가자 게시글과 사진은 공용 오프라인 캐시에 저장하지 않는다.
++  if (req.headers.has('Authorization') || url.pathname.startsWith('/api/trip/')) return
+   if (url.origin === self.location.origin && (url.pathname === GUIDE_PATH.slice(0, -1) || url.pathname.startsWith(GUIDE_PATH))) return
+   if (req.mode === 'navigate' && url.origin === self.location.origin) {
+     event.respondWith(networkFirst(req))
+diff --git a/src/app/Shell.tsx b/src/app/Shell.tsx
+index c662a1afd4b922b28b93b4aa850e878283fbd09e..c8f48a8de126c82d11845d48da5fe41f77e8ac01 100644
+--- a/src/app/Shell.tsx
++++ b/src/app/Shell.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
++import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+ import { rich } from '../components/Rich'
+ import { pageAt, pageByKey, pages, trip, type Page } from '../content'
+ import { Icon } from '../components/Icon'
+@@ -19,6 +19,9 @@ import { noticeVersion, useHiddenNotices, useLastPage, useMapTall, useNotices, t
+ import { daysUntil } from '../lib/time'
+ import { useApp } from './context'
+ import { GUIDE } from '../lib/edition'
++import { CommunityOpener } from '../features/community/CommunityLink'
++
++const CommunitySheet = GUIDE ? null : lazy(() => import('../features/community/CommunitySheet'))
+ 
+ export function Shell({ onLock }: { onLock: () => void }) {
+   const loc = useLocation()
+@@ -26,7 +29,9 @@ export function Shell({ onLock }: { onLock: () => void }) {
+   const zudo = useZudoSession()
+   const [lastPage, setLastPage] = useLastPage()
+   const [mapTall, setMapTall] = useMapTall()
+-  const [sheet, setSheet] = useState<'schedule' | 'menu' | 'compose' | 'manage' | 'wake' | null>(null)
++  const [sheet, setSheet] = useState<'schedule' | 'menu' | 'compose' | 'manage' | 'wake' | 'community' | null>(null)
++  const [communityLocation, setCommunityLocation] = useState<string | undefined>()
++  const openCommunity = (location?: string) => { setCommunityLocation(location); setSheet('community') }
+   const { notices, create: createNotice, update: updateNotice, remove: removeNotice } = useNotices()
+   const { hidden, hide } = useHiddenNotices()
+   const [editing, setEditing] = useState<Notice | null>(null)
+@@ -156,6 +161,7 @@ export function Shell({ onLock }: { onLock: () => void }) {
+   const dday = daysUntil(trip.startDate, at)
+ 
+   return (
++    <CommunityOpener.Provider value={openCommunity}>
+     <div className="app" data-map-tall={mapTall || undefined} data-nomap={noMap || undefined}>
+       <header className="topbar">
+         <button type="button" className="topbar__chapter" onClick={() => setSheet('schedule')} aria-haspopup="dialog">
+@@ -232,9 +238,11 @@ export function Shell({ onLock }: { onLock: () => void }) {
+             setSheet(view)
+           }}
+           onWake={() => setSheet('wake')}
++          onCommunity={() => openCommunity()}
+         />
+       ) : null}
+       {!GUIDE && sheet === 'wake' ? <WakeSheet onClose={() => setSheet(null)} /> : null}
++      {CommunitySheet && sheet === 'community' ? <Suspense fallback={<p className="sr-only" role="status">탐방 이야기를 여는 중이에요.</p>}><CommunitySheet location={communityLocation} onClose={() => setSheet(null)} /></Suspense> : null}
+       {!GUIDE && sheet === 'compose' && author ? (
+         <NoticeEditor
+           key={editing?.id ?? 'new'}
+@@ -284,6 +292,7 @@ export function Shell({ onLock }: { onLock: () => void }) {
+         {current.chapter.label} {pageTitle(current)}
+       </span>
+     </div>
++    </CommunityOpener.Provider>
+   )
+ }
+ 
+diff --git a/src/components/Sheet.tsx b/src/components/Sheet.tsx
+index 324d37fd15c012887bf12a504035ce4fcdbdc803..c0d8ebf014b845c0e4683007b60a32dae556da07 100644
+--- a/src/components/Sheet.tsx
++++ b/src/components/Sheet.tsx
+@@ -18,6 +18,14 @@ export function Sheet({ title, onClose, children, wide = false }: { title: React
+         e.stopPropagation()
+         closeRef.current()
+       }
++      if (e.key === 'Tab') {
++        const items = [...(panelRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]') ?? [])].filter((el) => el.getClientRects().length > 0)
++        const first = items[0]
++        const last = items[items.length - 1]
++        if (!first || !last) return
++        if (e.shiftKey && (document.activeElement === first || !panelRef.current?.contains(document.activeElement))) { e.preventDefault(); last.focus() }
++        else if (!e.shiftKey && (document.activeElement === last || !panelRef.current?.contains(document.activeElement))) { e.preventDefault(); first.focus() }
++      }
+     }
+     window.addEventListener('keydown', onKey, true)
+     const prev = document.body.style.overflow
+diff --git a/src/features/menu/MenuSheet.tsx b/src/features/menu/MenuSheet.tsx
+index a3366d44a88607717c9f0a5d8a4eee18e323f962..e96ee200df3a6081dd644942ea43bc378ef91d57 100644
+--- a/src/features/menu/MenuSheet.tsx
++++ b/src/features/menu/MenuSheet.tsx
+@@ -25,6 +25,7 @@ export function MenuSheet({
+   noticeCount,
+   onNotices,
+   onWake,
++  onCommunity,
+ }: {
+   onJump: (key: string) => void
+   onClose: () => void
+@@ -32,6 +33,7 @@ export function MenuSheet({
+   noticeCount: number
+   onNotices: (view: 'compose' | 'manage') => void
+   onWake: () => void
++  onCommunity: () => void
+ }) {
+   const { profile, setProfile, roster, me, teacher, studentById } = useApp()
+   const role = profile?.role
+@@ -202,6 +204,7 @@ export function MenuSheet({
+           <>
+             {GUIDE ? null : <h3 className="menu__h">바로 가기</h3>}
+             <ul className="quick">
++              {!GUIDE && zudo && zudo.me.role !== 'parent' ? <li><button type="button" className="quick__btn" onClick={onCommunity}><Icon name="chat" />탐방 이야기</button></li> : null}
+               {quick
+                 .filter((q) => q.key)
+                 .map((q) => (
+@@ -227,7 +230,7 @@ export function MenuSheet({
+         ) : (
+           <>
+           <p className="fineprint menu__fine">
+-            사진·느낀 점·인원 확인·체크한 것은 이 휴대폰에만 저장돼요. 기상 확인과 내 항공권만 ZUDO에서 받아 와요.
++            개인 사진·느낀 점·인원 확인·체크한 것은 이 휴대폰에만 저장돼요. 탐방 이야기에 게시한 글·사진·댓글은 서버에 저장돼요. 기상 확인과 내 항공권은 ZUDO에서 받아 와요.
+           </p>
+           <button
+             type="button"
+diff --git a/src/features/page/SlideView.tsx b/src/features/page/SlideView.tsx
+index 1c2f618d711e6d1e157d9637cf9212f6b611a354..f86d151a1d6215d553c9d03e9adb394620d7c975 100644
+--- a/src/features/page/SlideView.tsx
++++ b/src/features/page/SlideView.tsx
+@@ -10,10 +10,13 @@ import { GUIDE } from '../../lib/edition'
+ import { TeacherNotes } from '../teacher/TeacherNotes'
+ import { Widget } from '../guide/Widget'
+ import { LegChip, MeetingPass, Photos, Section, kstText, mapsLink, timeText } from './parts'
++import { CommunityLink } from '../community/CommunityLink'
++import { useZudoSession } from '../../lib/zudo'
+ 
+ export function SlideView({ page }: { page: SlidePage }) {
+   const { slide } = page
+   const { profile, me, at } = useApp()
++  const session = useZudoSession()
+   const role = profile?.role ?? 'student'
+   const t = timeText(page)
+   const kst = kstText(page)
+@@ -128,6 +131,7 @@ export function SlideView({ page }: { page: SlidePage }) {
+       {role === 'parent' && canRecord(page) && !GUIDE ? <ChildRecord page={page} /> : null}
+       {role === 'teacher' && slide.attendance ? <AttendancePanel page={page} /> : null}
+       {role === 'teacher' ? <TeacherNotes page={page} /> : null}
++      {!GUIDE && session?.me.role !== 'parent' ? <CommunityLink pageKey={page.key} /> : null}
+ 
+       {next ? (
+         <button type="button" className="next-card" onClick={() => goTo(next.key, { replace: true })}>
+diff --git a/src/lib/repo.ts b/src/lib/repo.ts
+index a9186a43a434749e75ea27f8c5a4ead06a6c0d1f..9783b6969df099a6436f97f6aade60ac7d771e87 100644
+--- a/src/lib/repo.ts
++++ b/src/lib/repo.ts
+@@ -5,7 +5,8 @@
+  * 화면 코드는 아래 모양(Profile, Reflection, Attendance)만 알고 저장 방식을 모른다.
+  */
+ import { useCallback, useEffect, useMemo } from 'react'
+-import { useStored } from './storage'
++import { readStored, useStored, writeStored } from './storage'
++import type { PostInput } from './community'
+ import { deletePhoto } from './photoStore'
+ import type { ThemeId } from '../content'
+ 
+@@ -362,3 +363,16 @@ export function useStudentReflections(studentId: string | undefined): Reflection
+     return out
+   }, [raw, studentId])
+ }
++
++/** 게시판 초안은 계정별로 이 기기에만 둔다. 개인 느낀 점과 별도 저장한다. */
++export type CommunityDraft = { clientId: string; input: PostInput; photoIds: string[]; baseVersion?: number }
++const draftKey = (owner: string, slot: string) => `community-draft:${owner}:${slot}`
++export function readCommunityDraft(owner: string, slot = 'new'): CommunityDraft | null {
++  const raw = readStored<CommunityDraft | null>(draftKey(owner, slot), null)
++  if (!raw || typeof raw.clientId !== 'string' || !raw.input || typeof raw.input.title !== 'string' || typeof raw.input.body !== 'string' || !Array.isArray(raw.photoIds)) return null
++  return raw
++}
++/** false 면 브라우저가 저장을 막아 이번 창에서만 유지된다. */
++export function saveCommunityDraft(owner: string, slot: string, draft: CommunityDraft | null): boolean {
++  return writeStored(draftKey(owner, slot), draft)
++}
+diff --git a/src/lib/storage.ts b/src/lib/storage.ts
+index 08b802590e5c48220234cbd8503805ad973599a3..54faaf54c072edda05baad68c2eda4374dd16ea6 100644
+--- a/src/lib/storage.ts
++++ b/src/lib/storage.ts
+@@ -23,8 +23,10 @@ function writeRaw(key: string, value: string) {
+   try {
+     window.localStorage.setItem(PREFIX + key, value)
+     memory.delete(key)
++    return true
+   } catch {
+     memory.set(key, value)
++    return false
+   }
+ }
+ 
+@@ -41,8 +43,9 @@ export function readStored<T>(key: string, fallback: T): T {
+ const listeners = new Map<string, Set<() => void>>()
+ 
+ export function writeStored<T>(key: string, value: T) {
+-  writeRaw(key, JSON.stringify(value))
++  const persisted = writeRaw(key, JSON.stringify(value))
+   listeners.get(key)?.forEach((fn) => fn())
++  return persisted
+ }
+ 
+ /** useState 와 같지만 값이 브라우저에 남고, 같은 키를 쓰는 다른 화면·탭과 함께 바뀐다. */
+diff --git a/src/styles/app.css b/src/styles/app.css
+index 1171ea4c620cc4d1f299249e58d2ac249c4a314f..7ea07985312cb0608dd7c85c1a2b510eabc7d516 100644
+--- a/src/styles/app.css
++++ b/src/styles/app.css
+@@ -1391,6 +1391,21 @@ img {
+ 
+ /* ── 단추·입력 ─────────────────────────────────────────────────────────── */
+ 
++.community-entry {
++  display: flex;
++  align-items: center;
++  gap: 12px;
++  width: 100%;
++  text-align: left;
++  padding: 20px 0;
++  margin-top: 24px;
++  border-top: 2px solid var(--ink);
++  border-bottom: 1px solid var(--line-2);
++}
++.community-entry > span { flex: 1; min-width: 0; }
++.community-entry strong { display: block; font-size: 1.125rem; }
++.community-entry span > span { display: block; margin-top: 4px; font-size: 1rem; color: var(--muted); }
++
+ .btn {
+   display: inline-flex;
+   align-items: center;
+diff --git a/tsconfig.node.json b/tsconfig.node.json
+index ae022d591a46e8faf43d4f96d534cc977bb42f57..1efc547ee71cd5f6f1e69f6c7b56801f3734da91 100644
+--- a/tsconfig.node.json
++++ b/tsconfig.node.json
+@@ -3,6 +3,7 @@
+     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+     "target": "ES2023",
+     "lib": ["ES2023"],
++    "types": ["node"],
+     "module": "ESNext",
+     "skipLibCheck": true,
+     "moduleResolution": "bundler",
+diff --git a/vite.config.ts b/vite.config.ts
+index 65863731e1cd422393f3b34e5d25091da6df15a9..859432d6bcf764b23cf2d40ca7efbc230f678bdd 100644
+--- a/vite.config.ts
++++ b/vite.config.ts
+@@ -1,5 +1,7 @@
+-import { defineConfig, type Plugin, type UserConfig } from 'vite'
++import { defineConfig, loadEnv, type Plugin, type UserConfig } from 'vite'
+ import react from '@vitejs/plugin-react'
++import { URL } from 'node:url'
++import { cwd } from 'node:process'
+ 
+ // 배포본에만 보안 정책(CSP)을 넣는다. 개발 서버는 HMR 인라인 스크립트가 있어 넣지 않는다.
+ // GitHub Pages 는 응답 헤더를 못 바꾸므로 meta 로 둔다. 지도 타일·글꼴은 OpenFreeMap 에서만 받는다. 서버 자료는 ZUDO 에서만 받는다.
+@@ -19,12 +21,15 @@ const CSP = [
+   "form-action 'none'",
+ ].join('; ')
+ 
+-function securityMeta(): Plugin {
++function securityMeta(communityOrigin?: string): Plugin {
++  const extraOrigin = communityOrigin ? new URL(communityOrigin).origin : null
++  if (extraOrigin && !extraOrigin.startsWith('https://') && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(extraOrigin)) throw new Error('Community origin must use HTTPS')
++  const policy = extraOrigin ? CSP.replace("connect-src 'self' https://tiles.openfreemap.org https://www.zudo.my", `connect-src 'self' https://tiles.openfreemap.org https://www.zudo.my ${extraOrigin}`) : CSP
+   return {
+     name: 'security-meta',
+     apply: 'build',
+     transformIndexHtml: (html) =>
+-      html.replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />\n    <meta name="referrer" content="no-referrer" />`),
++      html.replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${policy}" />\n    <meta name="referrer" content="no-referrer" />`),
+   }
+ }
+ 
+@@ -32,11 +37,11 @@ function securityMeta(): Plugin {
+ export const SITE_BASE = '/gbshs-usa-2026/'
+ 
+ /** 본 사이트(입장 코드)와 학생 사전 안내판(vite.guide.config.ts)이 함께 쓰는 설정 */
+-export function baseConfig(guide: boolean): UserConfig {
++export function baseConfig(guide: boolean, communityOrigin?: string): UserConfig {
+   return {
+   base: SITE_BASE,
+   define: { __GUIDE__: JSON.stringify(guide), __SITE_BASE__: JSON.stringify(SITE_BASE) },
+-  plugins: [react(), securityMeta()],
++  plugins: [react(), securityMeta(communityOrigin)],
+   // 지도 워커(maplibre-gl-worker.mjs)가 ES 모듈이라 워커 번들도 ES 모듈로 만든다.
+   worker: { format: 'es' },
+   build: {
+@@ -49,4 +54,4 @@ export function baseConfig(guide: boolean): UserConfig {
+   }
+ }
+ 
+-export default defineConfig(baseConfig(false))
++export default defineConfig(({ mode }) => baseConfig(false, loadEnv(mode, cwd(), 'VITE_').VITE_COMMUNITY_ORIGIN))
