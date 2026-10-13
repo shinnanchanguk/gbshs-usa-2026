@@ -1,0 +1,216 @@
+diff --git a/README.md b/README.md
+index 2f92de9..5f5b4d8 100644
+--- a/README.md
++++ b/README.md
+@@ -8,6 +8,8 @@
+ 
+ ## 무엇이 들어 있나
+ 
++일정·지도 개인 메모의 구현 범위와 운영 앱 적용 전제는 [개인 메모 안내](docs/PRIVATE_NOTES.md)를 참고하세요. 이 메모는 제출물과 별개로 기기에만 저장됩니다.
++
+ | 묶음 | 내용 |
+ |---|---|
+ | 출발 전 | 날짜별 할 일, 면책·의료 동의서 쓰는 법, 챙길 것(체크), 꼭 지킬 약속, 돈과 결제(팁 계산), 휴대폰·비행 준비, 버스와 내 자리, 숙소와 방, 멘토, 비상 연락처 |
+diff --git a/package.json b/package.json
+index 76b68a9..f592beb 100644
+--- a/package.json
++++ b/package.json
+@@ -14,6 +14,8 @@
+     "check:layout": "node scripts/check-guide-layout.mjs",
+     "test:community": "node --test server/community/tests/*.test.mjs",
+     "test:community:browser": "node tests/community-browser.mjs",
++    "test:notes": "node --experimental-strip-types --test tests/private-notes.test.mjs",
++    "test:notes:browser": "node tests/private-notes-browser.mjs",
+     "photos:import": "node scripts/import-photos.mjs",
+     "typecheck": "tsc -b",
+     "routes": "node --network-family-autoselection-attempt-timeout=2000 scripts/build-routes.mjs",
+diff --git a/scripts/check-guide.mjs b/scripts/check-guide.mjs
+index 2a786de..0e0914e 100644
+--- a/scripts/check-guide.mjs
++++ b/scripts/check-guide.mjs
+@@ -29,7 +29,7 @@ walk(DIR)
+ const text = files.map((f) => fs.readFileSync(f, 'utf8')).join('\n')
+ 
+ const errors = []
+-for (const word of ['PBKDF2', 'deriveBits', 'roster-key', 'roster.enc', 'field-photos', 'createObjectStore']) if (text.includes(word)) errors.push(`복호화·명단 코드("${word}")가 들어 있다`)
++for (const word of ['PBKDF2', 'deriveBits', 'roster-key', 'roster.enc', 'field-photos', 'createObjectStore', 'private-notes:v1']) if (text.includes(word)) errors.push(`개인 기록·복호화·명단 코드("${word}")가 들어 있다`)
+ const sealed = JSON.parse(fs.readFileSync(path.join(ROOT, 'content', 'roster.enc.json'), 'utf8'))
+ for (let i = 0; i + 40 <= sealed.data.length; i += 40) {
+   if (text.includes(sealed.data.slice(i, i + 40))) {
+diff --git a/src/app/Shell.tsx b/src/app/Shell.tsx
+index c8f48a8..53f4b94 100644
+--- a/src/app/Shell.tsx
++++ b/src/app/Shell.tsx
+@@ -20,6 +20,7 @@ import { daysUntil } from '../lib/time'
+ import { useApp } from './context'
+ import { GUIDE } from '../lib/edition'
+ import { CommunityOpener } from '../features/community/CommunityLink'
++import { PrivateNotesProvider } from '../features/notes/NoteContext'
+ 
+ const CommunitySheet = GUIDE ? null : lazy(() => import('../features/community/CommunitySheet'))
+ 
+@@ -161,6 +162,7 @@ export function Shell({ onLock }: { onLock: () => void }) {
+   const dday = daysUntil(trip.startDate, at)
+ 
+   return (
++    <PrivateNotesProvider>
+     <CommunityOpener.Provider value={openCommunity}>
+     <div className="app" data-map-tall={mapTall || undefined} data-nomap={noMap || undefined}>
+       <header className="topbar">
+@@ -293,6 +295,7 @@ export function Shell({ onLock }: { onLock: () => void }) {
+       </span>
+     </div>
+     </CommunityOpener.Provider>
++    </PrivateNotesProvider>
+   )
+ }
+ 
+diff --git a/src/components/Icon.tsx b/src/components/Icon.tsx
+index 6e067c3..6fbe7b2 100644
+--- a/src/components/Icon.tsx
++++ b/src/components/Icon.tsx
+@@ -7,6 +7,7 @@
+ import type { SVGProps } from 'react'
+ 
+ const PATHS = {
++  note: <><path d="M5 3.5h14v12l-5 5H5z" /><path d="M14 20.5v-5h5M8 8h8M8 12h6" /></>,
+   chevronLeft: <path d="m14.5 5.5-6.5 6.5 6.5 6.5" />,
+   chevronRight: <path d="m9.5 5.5 6.5 6.5-6.5 6.5" />,
+   chevronDown: <path d="m5.5 9.5 6.5 6.5 6.5-6.5" />,
+diff --git a/src/features/map/TripMap.tsx b/src/features/map/TripMap.tsx
+index 8c18b79..591b834 100644
+--- a/src/features/map/TripMap.tsx
++++ b/src/features/map/TripMap.tsx
+@@ -18,6 +18,7 @@ import type { ExpressionSpecification } from '@maplibre/maplibre-gl-style-spec'
+ import { slidePages, trip, type Page, type SlidePage } from '../../content'
+ import { bbox, greatCircle, type LngLat } from '../../lib/geo'
+ import { paintPaper } from './paint'
++import { PrivateNoteMarkers } from '../notes/PrivateNoteMarkers'
+ 
+ setWorkerUrl(maplibreWorkerUrl)
+ 
+@@ -406,6 +407,7 @@ export function TripMap({ page, onSelect }: { page: Page; onSelect: (key: string
+   return (
+     <div className="map">
+       <div ref={containerRef} className="map__canvas" role="region" aria-label="여행 동선 지도" />
++      <PrivateNoteMarkers map={ready ? mapRef.current : null} day={page.day.n} currentKey={page.key} flight={page.type === 'slide' && page.slide.kind === 'flight'} />
+       {failed ? (
+         <div className="map__fail" role="status">
+           <p>지도를 불러오지 못했어요. 인터넷이 연결되면 다시 보여요. 일정 안내는 그대로 볼 수 있어요.</p>
+diff --git a/src/features/page/DayCover.tsx b/src/features/page/DayCover.tsx
+index 0acb556..520e539 100644
+--- a/src/features/page/DayCover.tsx
++++ b/src/features/page/DayCover.tsx
+@@ -5,6 +5,7 @@ import { goTo } from '../../lib/router'
+ import { duration } from '../../lib/time'
+ import { useApp } from '../../app/context'
+ import { timeText } from './parts'
++import { PrivateNoteButton } from '../notes/PrivateNoteButton'
+ 
+ /**
+  * 일차 표지. 그날의 날짜·요약·식사·숙소와, 장소와 이동을 시간 순서로 잇는 시간 척추.
+@@ -36,6 +37,7 @@ export function DayCover({ page }: { page: DayPage }) {
+         </p>
+       </header>
+       <p className="lead">{rich(day.summary)}</p>
++      <PrivateNoteButton pageKey={page.key} />
+ 
+       <dl className="facts">
+         <div>
+diff --git a/src/features/page/SlideView.tsx b/src/features/page/SlideView.tsx
+index f86d151..02492a1 100644
+--- a/src/features/page/SlideView.tsx
++++ b/src/features/page/SlideView.tsx
+@@ -12,6 +12,7 @@ import { Widget } from '../guide/Widget'
+ import { LegChip, MeetingPass, Photos, Section, kstText, mapsLink, timeText } from './parts'
+ import { CommunityLink } from '../community/CommunityLink'
+ import { useZudoSession } from '../../lib/zudo'
++import { PrivateNoteButton } from '../notes/PrivateNoteButton'
+ 
+ export function SlideView({ page }: { page: SlidePage }) {
+   const { slide } = page
+@@ -71,6 +72,8 @@ export function SlideView({ page }: { page: SlidePage }) {
+       <p className="lead">{rich(slide.summary)}</p>
+       {kst && role !== 'parent' ? <p className="page__kst page__kst--quiet mono">{kst}</p> : null}
+ 
++      <PrivateNoteButton pageKey={page.key} />
++
+       {slide.meeting ? <MeetingPass meeting={slide.meeting} /> : null}
+ 
+       {slide.busNotes ? (
+diff --git a/src/lib/repo.ts b/src/lib/repo.ts
+index 9783b69..3977fb1 100644
+--- a/src/lib/repo.ts
++++ b/src/lib/repo.ts
+@@ -4,11 +4,12 @@
+  * 로그인·데이터베이스를 붙일 때는 이 파일의 훅 안쪽만 서버 호출로 바꾸면 된다.
+  * 화면 코드는 아래 모양(Profile, Reflection, Attendance)만 알고 저장 방식을 모른다.
+  */
+-import { useCallback, useEffect, useMemo } from 'react'
+-import { readStored, useStored, writeStored } from './storage'
++import { useCallback, useEffect, useMemo, useState } from 'react'
++import { isStoredPending, readStored, useStored, writeStored } from './storage'
+ import type { PostInput } from './community'
+ import { deletePhoto } from './photoStore'
+ import type { ThemeId } from '../content'
++import { changePrivateNote, notesForOwner, type PrivateNoteBook } from './privateNoteModel'
+ 
+ export type Role = 'student' | 'teacher' | 'parent'
+ 
+@@ -159,6 +160,30 @@ export function useMapTall() {
+   return useStored<boolean>('map-tall', false)
+ }
+ 
++const PRIVATE_NOTES_KEY = 'private-notes:v1'
++const EMPTY_PRIVATE_NOTES: PrivateNoteBook = { version: 1, entries: [] }
++// 저장 실패 여부는 기기에 영구 기록하지 않는다. 실패한 본문은 storage의 메모리 대체 저장을 사용한다.
++const privateNoteFailures = new Set<string>()
++const privateNoteFailureKey = (owner: string, pageKey: string) => JSON.stringify([owner, pageKey])
++
++/** 개인 메모는 제출·사진·보고서·교사/보호자 열람과 분리한다. 향후 DB 연결도 여기서 한다. */
++export function usePrivateNotes(owner: string | null) {
++  const [raw] = useStored<unknown>(PRIVATE_NOTES_KEY, EMPTY_PRIVATE_NOTES)
++  const [failures, setFailures] = useState(() => new Set(privateNoteFailures))
++  const book = useMemo(() => notesForOwner(raw, owner), [raw, owner])
++  const save = useCallback((pageKey: string, text: string | null) => {
++    if (!owner) return false
++    const next = changePrivateNote(readStored(PRIVATE_NOTES_KEY, EMPTY_PRIVATE_NOTES), owner, pageKey, text)
++    const persisted = writeStored(PRIVATE_NOTES_KEY, next)
++    const id = privateNoteFailureKey(owner, pageKey)
++    if (persisted) privateNoteFailures.clear()
++    else privateNoteFailures.add(id)
++    setFailures(new Set(privateNoteFailures))
++    return persisted
++  }, [owner])
++  return { book, save, failed: (pageKey: string) => !!owner && isStoredPending(PRIVATE_NOTES_KEY) && failures.has(privateNoteFailureKey(owner, pageKey)) }
++}
++
+ /** 선생님이 올리는 공지. 학생 화면에 팝업으로 뜬다. */
+ export type Notice = {
+   id: string
+diff --git a/src/lib/storage.ts b/src/lib/storage.ts
+index 54faaf5..3541c13 100644
+--- a/src/lib/storage.ts
++++ b/src/lib/storage.ts
+@@ -9,6 +9,9 @@ import { useCallback, useEffect, useState } from 'react'
+ const PREFIX = 'usa2026:'
+ const memory = new Map<string, string>()
+ 
++/** 쓰기 실패 뒤 메모리에만 남은 변경이 있는지 알려 준다. */
++export const isStoredPending = (key: string) => memory.has(key)
++
+ function readRaw(key: string): string | null {
+   // 저장이 가득 차서 메모리에 둔 값이 있으면 그것이 가장 최신이다
+   if (memory.has(key)) return memory.get(key)!
+@@ -58,7 +61,10 @@ export function useStored<T>(key: string, fallback: T): [T, (next: T | ((prev: T
+     set.add(sync)
+     listeners.set(key, set)
+     const onStorage = (e: StorageEvent) => {
+-      if (e.key === PREFIX + key) sync()
++      if (e.key === PREFIX + key || e.key === null) {
++        memory.delete(key)
++        sync()
++      }
+     }
+     window.addEventListener('storage', onStorage)
+     return () => {

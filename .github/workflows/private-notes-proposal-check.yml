@@ -1,0 +1,24 @@
+name: Private notes proposal checks
+
+on:
+  pull_request:
+    paths:
+      - 'proposals/private-map-notes/**'
+      - '.github/workflows/private-notes-proposal-check.yml'
+  push:
+    branches: ['codex/private-map-notes-review']
+
+permissions:
+  contents: read
+
+jobs:
+  data-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test --prefix proposals/private-map-notes/source

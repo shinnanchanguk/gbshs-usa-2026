@@ -1,0 +1,7 @@
+{
+  "name": "private-map-notes-review",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": { "test": "node --experimental-strip-types --test tests/private-notes.test.mjs" }
+}

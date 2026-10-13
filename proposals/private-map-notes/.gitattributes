@@ -1,0 +1,2 @@
+# Preserve unified diff context bytes when transferring the integration patch.
+integration.patch -text -whitespace
